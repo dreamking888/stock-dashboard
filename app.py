@@ -586,6 +586,423 @@ def get_klci_index():
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
+# ========== WATCHLIST API ==========
+WATCHLIST_FILE = os.path.join(os.path.dirname(__file__), 'watchlist.json')
+ALERTS_FILE = os.path.join(os.path.dirname(__file__), 'alerts.json')
+
+def load_json(filepath, default):
+    if os.path.exists(filepath):
+        try:
+            with open(filepath, 'r') as f:
+                return json.load(f)
+        except:
+            pass
+    return default
+
+def save_json(filepath, data):
+    with open(filepath, 'w') as f:
+        json.dump(data, f, indent=2)
+
+@app.route('/api/watchlist')
+def get_watchlist():
+    """Get user's watchlist"""
+    watchlist = load_json(WATCHLIST_FILE, [])
+    return jsonify({'watchlist': watchlist, 'timestamp': datetime.now().isoformat()})
+
+@app.route('/api/watchlist/add', methods=['POST'])
+def add_to_watchlist():
+    """Add stock to watchlist"""
+    data = request.get_json()
+    ticker = data.get('ticker', '').upper()
+    name = data.get('name', ticker)
+    
+    if not ticker:
+        return jsonify({'error': 'Ticker required'}), 400
+    
+    watchlist = load_json(WATCHLIST_FILE, [])
+    
+    # Check if already exists
+    if not any(s.get('ticker') == ticker for s in watchlist):
+        watchlist.append({'ticker': ticker, 'name': name, 'added_at': datetime.now().isoformat()})
+        save_json(WATCHLIST_FILE, watchlist)
+    
+    return jsonify({'success': True, 'watchlist': watchlist})
+
+@app.route('/api/watchlist/remove', methods=['POST'])
+def remove_from_watchlist():
+    """Remove stock from watchlist"""
+    data = request.get_json()
+    ticker = data.get('ticker', '').upper()
+    
+    watchlist = load_json(WATCHLIST_FILE, [])
+    watchlist = [s for s in watchlist if s.get('ticker') != ticker]
+    save_json(WATCHLIST_FILE, watchlist)
+    
+    return jsonify({'success': True, 'watchlist': watchlist})
+
+# ========== ALERTS API ==========
+@app.route('/api/alerts')
+def get_alerts():
+    """Get all alerts"""
+    alerts = load_json(ALERTS_FILE, [])
+    return jsonify({'alerts': alerts, 'timestamp': datetime.now().isoformat()})
+
+@app.route('/api/alerts/add', methods=['POST'])
+def add_alert():
+    """Add new alert"""
+    data = request.get_json()
+    ticker = data.get('ticker', '').upper()
+    alert_type = data.get('type', 'price')  # price, rsi, macd
+    condition = data.get('condition', 'above')  # above, below, crossover, crossunder
+    value = float(data.get('value', 0))
+    name = data.get('name', ticker)
+    
+    if not ticker:
+        return jsonify({'error': 'Ticker required'}), 400
+    
+    alerts = load_json(ALERTS_FILE, [])
+    
+    # Generate unique ID
+    import uuid
+    alert_id = str(uuid.uuid4())[:8]
+    
+    new_alert = {
+        'id': alert_id,
+        'ticker': ticker,
+        'name': name,
+        'type': alert_type,
+        'condition': condition,
+        'value': value,
+        'created_at': datetime.now().isoformat(),
+        'triggered': False,
+        'triggered_at': None
+    }
+    
+    alerts.append(new_alert)
+    save_json(ALERTS_FILE, alerts)
+    
+    return jsonify({'success': True, 'alert': new_alert, 'alerts': alerts})
+
+@app.route('/api/alerts/remove', methods=['POST'])
+def remove_alert():
+    """Remove alert by ID"""
+    data = request.get_json()
+    alert_id = data.get('id')
+    
+    alerts = load_json(ALERTS_FILE, [])
+    alerts = [a for a in alerts if a.get('id') != alert_id]
+    save_json(ALERTS_FILE, alerts)
+    
+    return jsonify({'success': True, 'alerts': alerts})
+
+@app.route('/api/alerts/check')
+def check_alerts():
+    """Check all alerts against current data"""
+    alerts = load_json(ALERTS_FILE, [])
+    triggered = []
+    
+    for alert in alerts:
+        if alert.get('triggered'):
+            continue
+            
+        try:
+            ticker = alert['ticker']
+            alert_type = alert['type']
+            condition = alert['condition']
+            target_value = alert['value']
+            
+            stock = yf.Ticker(ticker)
+            
+            if alert_type == 'price':
+                hist = stock.history(period='1d', interval='1m')
+                if not hist.empty:
+                    current_price = float(hist['Close'].iloc[-1])
+                    
+                    if condition == 'above' and current_price > target_value:
+                        alert['triggered'] = True
+                        alert['triggered_at'] = datetime.now().isoformat()
+                        alert['current_value'] = current_price
+                        triggered.append(alert)
+                    elif condition == 'below' and current_price < target_value:
+                        alert['triggered'] = True
+                        alert['triggered_at'] = datetime.now().isoformat()
+                        alert['current_value'] = current_price
+                        triggered.append(alert)
+                        
+            elif alert_type in ['rsi', 'macd', 'macd_signal']:
+                hist = stock.history(period='3mo', interval='1d')
+                if not hist.empty:
+                    close = hist['Close']
+                    
+                    if alert_type == 'rsi':
+                        delta = close.diff()
+                        gain = delta.where(delta > 0, 0).rolling(window=14).mean()
+                        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+                        rs = gain / loss
+                        rsi = 100 - (100 / (1 + rs))
+                        current = float(rsi.iloc[-1])
+                        
+                        if condition == 'above' and current > target_value:
+                            alert['triggered'] = True
+                            alert['triggered_at'] = datetime.now().isoformat()
+                            alert['current_value'] = current
+                            triggered.append(alert)
+                        elif condition == 'below' and current < target_value:
+                            alert['triggered'] = True
+                            alert['triggered_at'] = datetime.now().isoformat()
+                            alert['current_value'] = current
+                            triggered.append(alert)
+                            
+                    elif alert_type in ['macd', 'macd_signal']:
+                        ema12 = close.ewm(span=12, adjust=False).mean()
+                        ema26 = close.ewm(span=26, adjust=False).mean()
+                        macd = ema12 - ema26
+                        signal = macd.ewm(span=9, adjust=False).mean()
+                        macd_val = float(macd.iloc[-1])
+                        signal_val = float(signal.iloc[-1])
+                        
+                        if alert_type == 'macd':
+                            current = macd_val
+                        else:
+                            current = signal_val
+                            
+                        if condition == 'above' and current > target_value:
+                            alert['triggered'] = True
+                            alert['triggered_at'] = datetime.now().isoformat()
+                            alert['current_value'] = current
+                            triggered.append(alert)
+                        elif condition == 'below' and current < target_value:
+                            alert['triggered'] = True
+                            alert['triggered_at'] = datetime.now().isoformat()
+                            alert['current_value'] = current
+                            triggered.append(alert)
+                        elif condition == 'crossover' and macd_val > signal_val and alert.get('_last_macd', 0) <= alert.get('_last_signal', 0):
+                            alert['triggered'] = True
+                            alert['triggered_at'] = datetime.now().isoformat()
+                            alert['current_value'] = macd_val
+                            triggered.append(alert)
+                        elif condition == 'crossunder' and macd_val < signal_val and alert.get('_last_macd', 0) >= alert.get('_last_signal', 0):
+                            alert['triggered'] = True
+                            alert['triggered_at'] = datetime.now().isoformat()
+                            alert['current_value'] = macd_val
+                            triggered.append(alert)
+        except Exception as e:
+            print(f"Error checking alert {alert.get('id')}: {e}")
+            continue
+    
+    # Save updated alerts
+    save_json(ALERTS_FILE, alerts)
+    
+    return jsonify({
+        'triggered': triggered,
+        'total_alerts': len(alerts),
+        'timestamp': datetime.now().isoformat()
+    })
+
+@app.route('/api/alerts/reset', methods=['POST'])
+def reset_alert():
+    """Reset a triggered alert"""
+    data = request.get_json()
+    alert_id = data.get('id')
+    
+    alerts = load_json(ALERTS_FILE, [])
+    for alert in alerts:
+        if alert.get('id') == alert_id:
+            alert['triggered'] = False
+            alert['triggered_at'] = None
+            alert.pop('current_value', None)
+            break
+    
+    save_json(ALERTS_FILE, alerts)
+    return jsonify({'success': True, 'alerts': alerts})
+
+# ========== METHODOLOGY RULES API ==========
+METHODOLOGY_RULES = {
+    'golden_cross': {
+        'name': 'Golden Cross',
+        'description': 'MA50 crosses above MA200 - Bullish signal',
+        'indicator': 'ma50_ma200',
+        'type': 'crossover'
+    },
+    'death_cross': {
+        'name': 'Death Cross', 
+        'description': 'MA50 crosses below MA200 - Bearish signal',
+        'indicator': 'ma50_ma200',
+        'type': 'crossunder'
+    },
+    'rsi_oversold': {
+        'name': 'RSI Oversold',
+        'description': 'RSI below 30 - Potential buy opportunity',
+        'indicator': 'rsi',
+        'threshold': 30,
+        'condition': 'below'
+    },
+    'rsi_overbought': {
+        'name': 'RSI Overbought',
+        'description': 'RSI above 70 - Potential sell signal',
+        'indicator': 'rsi',
+        'threshold': 70,
+        'condition': 'above'
+    },
+    'macd_bullish': {
+        'name': 'MACD Bullish Crossover',
+        'description': 'MACD crosses above signal line',
+        'indicator': 'macd',
+        'type': 'crossover'
+    },
+    'macd_bearish': {
+        'name': 'MACD Bearish Crossover',
+        'description': 'MACD crosses below signal line',
+        'indicator': 'macd',
+        'type': 'crossunder'
+    },
+    'bb_support': {
+        'name': 'Bollinger Bands Support',
+        'description': 'Price touches lower Bollinger Band',
+        'indicator': 'bb_lower',
+        'type': 'touch'
+    },
+    'bb_resistance': {
+        'name': 'Bollinger Bands Resistance',
+        'description': 'Price touches upper Bollinger Band',
+        'indicator': 'bb_upper',
+        'type': 'touch'
+    },
+    'price_above_ma50': {
+        'name': 'Price Above MA50',
+        'description': 'Current price above 50-day MA',
+        'indicator': 'price_ma50',
+        'condition': 'above'
+    },
+    'price_below_ma50': {
+        'name': 'Price Below MA50',
+        'description': 'Current price below 50-day MA',
+        'indicator': 'price_ma50',
+        'condition': 'below'
+    }
+}
+
+@app.route('/api/methodology')
+def get_methodology_rules():
+    """Get available methodology/analysis rules"""
+    return jsonify({
+        'rules': METHODOLOGY_RULES,
+        'timestamp': datetime.now().isoformat()
+    })
+
+@app.route('/api/methodology/analyze/<ticker>')
+def analyze_with_methodology(ticker):
+    """Analyze stock with all methodology rules"""
+    import pandas as pd
+    import numpy as np
+    
+    try:
+        stock = yf.Ticker(ticker)
+        hist = stock.history(period='6mo', interval='1d')
+        
+        if hist.empty:
+            return jsonify({'error': 'No data available'}), 400
+        
+        close = hist['Close']
+        
+        # Calculate indicators
+        ma20 = close.rolling(window=20).mean()
+        ma50 = close.rolling(window=50).mean()
+        ma200 = close.rolling(window=200).mean()
+        
+        ema12 = close.ewm(span=12, adjust=False).mean()
+        ema26 = close.ewm(span=26, adjust=False).mean()
+        macd = ema12 - ema26
+        signal = macd.ewm(span=9, adjust=False).mean()
+        
+        delta = close.diff()
+        gain = delta.where(delta > 0, 0).rolling(window=14).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+        rs = gain / loss
+        rsi = 100 - (100 / (1 + rs))
+        
+        bb_middle = close.rolling(window=20).mean()
+        bb_std = close.rolling(window=20).std()
+        bb_upper = bb_middle + (bb_std * 2)
+        bb_lower = bb_middle - (bb_std * 2)
+        
+        current_price = float(close.iloc[-1])
+        
+        # Apply methodology rules
+        results = {}
+        
+        # Golden/Death Cross
+        if len(ma50) > 1 and len(ma200) > 1:
+            ma50_prev = float(ma50.iloc[-2])
+            ma200_prev = float(ma200.iloc[-2])
+            ma50_curr = float(ma50.iloc[-1])
+            ma200_curr = float(ma200.iloc[-1])
+            
+            results['golden_cross'] = ma50_curr > ma200_curr and ma50_prev <= ma200_prev
+            results['death_cross'] = ma50_curr < ma200_curr and ma50_prev >= ma200_prev
+        
+        # RSI
+        rsi_val = float(rsi.iloc[-1]) if not pd.isna(rsi.iloc[-1]) else None
+        results['rsi_oversold'] = rsi_val < 30 if rsi_val else False
+        results['rsi_overbought'] = rsi_val > 70 if rsi_val else False
+        results['rsi_value'] = rsi_val
+        
+        # MACD
+        macd_val = float(macd.iloc[-1]) if not pd.isna(macd.iloc[-1]) else None
+        signal_val = float(signal.iloc[-1]) if not pd.isna(signal.iloc[-1]) else None
+        
+        if len(macd) > 1 and len(signal) > 1:
+            macd_prev = float(macd.iloc[-2])
+            signal_prev = float(signal.iloc[-2])
+            
+            results['macd_bullish'] = macd_val > signal_val and macd_prev <= signal_prev
+            results['macd_bearish'] = macd_val < signal_val and macd_prev >= signal_prev
+        
+        results['macd_value'] = macd_val
+        results['macd_signal_value'] = signal_val
+        
+        # Bollinger Bands
+        bb_upper_val = float(bb_upper.iloc[-1]) if not pd.isna(bb_upper.iloc[-1]) else None
+        bb_lower_val = float(bb_lower.iloc[-1]) if not pd.isna(bb_lower.iloc[-1]) else None
+        
+        results['bb_support'] = current_price <= bb_lower_val * 1.02 if bb_lower_val else False
+        results['bb_resistance'] = current_price >= bb_upper_val * 0.98 if bb_upper_val else False
+        
+        # Price vs MA
+        ma50_val = float(ma50.iloc[-1]) if not pd.isna(ma50.iloc[-1]) else None
+        results['price_above_ma50'] = current_price > ma50_val if ma50_val else False
+        results['price_below_ma50'] = current_price < ma50_val if ma50_val else False
+        
+        # Summary
+        bullish_signals = sum([
+            results.get('golden_cross', False),
+            results.get('rsi_oversold', False),
+            results.get('macd_bullish', False),
+            results.get('bb_support', False),
+            results.get('price_above_ma50', False)
+        ])
+        
+        bearish_signals = sum([
+            results.get('death_cross', False),
+            results.get('rsi_overbought', False),
+            results.get('macd_bearish', False),
+            results.get('bb_resistance', False),
+            results.get('price_below_ma50', False)
+        ])
+        
+        return jsonify({
+            'ticker': ticker,
+            'current_price': current_price,
+            'analysis': results,
+            'bullish_signals': bullish_signals,
+            'bearish_signals': bearish_signals,
+            'summary': 'BULLISH' if bullish_signals > bearish_signals else 'BEARISH' if bearish_signals > bullish_signals else 'NEUTRAL',
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
 if __name__ == '__main__':
     import sys
     
