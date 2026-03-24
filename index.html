@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📈 Malaysia Stock Dashboard v2.1</title>
+    <title>📈 Malaysia Stock Dashboard v2.11</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.0.0/dist/lightweight-charts.standalone.production.js"></script>
     <style>
@@ -929,7 +929,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>📈 Malaysia Stock Dashboard</h1>
+        <h1>📈 Malaysia Stock Dashboard <span style="background:#ff6b00;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;margin-left:10px;">v2.11</span></h1>
         <div class="auto-refresh">
             <span class="live-indicator">
                 <span class="live-dot"></span>
@@ -1169,7 +1169,7 @@
                             <option value="">-- Select Stock --</option>
                         </select>
                         <div class="modal-title" id="modalTitle">Stock Details</div>
-                        <span style="font-size:12px;color:#666;margin-left:10px;">v2.1</span>
+                        <span style="font-size:12px;color:#666;margin-left:10px;">v2.11</span>
                     </div>
                     <button class="modal-close" onclick="closeModal()">✕ Close</button>
                 </div>
@@ -1388,7 +1388,8 @@
         let refreshInterval = null;
         let sectorData = [];
         
-        const API_BASE = 'http://192.168.250.208:8888/api';
+        // Use relative path - works on both PC and phone on same network
+        const API_BASE = '/api';
         
         // Tab Management
         function switchTab(tab) {
@@ -2602,15 +2603,16 @@
         }
         
         // ========== PARALLEL LINE DRAWING SYSTEM ==========
-        let drawingMode = null;
-        let drawnLines = [];  // Array of line objects
-        let drawingState = 0;  // 0: idle, 1: first point clicked, 2: second point clicked
-        let firstPoint = null;
-        let secondPoint = null;
-        let tempLineSeries = null;
+        // Variables already declared above - just reassign
+        drawingMode = null;
+        drawnLines = [];  // Array of line objects
+        drawingState = 0;  // 0: idle, 1: first point clicked, 2: second point clicked
+        firstPoint = null;
+        secondPoint = null;
+        tempLineSeries = null;
         
         // Drawing series storage
-        let lineSeriesMap = {};  // Store line series by ID
+        lineSeriesMap = {};  // Store line series by ID
         
         function setDrawingMode(mode) {
             // Toggle mode
@@ -2989,7 +2991,7 @@
         };
         
         // Start
-        init();
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
