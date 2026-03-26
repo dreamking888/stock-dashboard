@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📈 Malaysia Stock Dashboard v2.11</title>
+    <title>📈 Malaysia Stock Dashboard v3.0</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.0.0/dist/lightweight-charts.standalone.production.js"></script>
     <style>
@@ -20,43 +20,48 @@
             color: #fff;
         }
         
-        /* Modal/Popup Styles */
+        /* Modal/Popup Styles - Fixed for TradingView layout */
         .modal-overlay {
             display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            z-index: 1000;
-            overflow: auto;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            background: rgba(0, 0, 0, 0.9) !important;
+            z-index: 9999 !important;
+            overflow: hidden !important;
         }
         
         .modal-overlay.active {
-            display: block;
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
         }
         
         .modal-content {
-            background: linear-gradient(145deg, #1a1a2e, #16213e);
-            margin: 20px auto;
-            width: 95%;
-            max-width: 1400px;
-            max-height: 95vh;
-            border-radius: 15px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
+            background: linear-gradient(145deg, #0d1117, #161b22) !important;
+            width: 98vw !important;
+            max-width: 1800px !important;
+            height: 95vh !important;
+            max-height: 95vh !important;
+            border-radius: 12px !important;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.6) !important;
+            overflow: hidden !important;
+            display: flex !important;
+            flex-direction: column !important;
+            position: relative !important;
+            border: 1px solid #30363d;
         }
         
         .modal-header {
             background: linear-gradient(90deg, #0f3460, #16213e);
-            padding: 15px 20px;
+            padding: 12px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 2px solid #00d4ff;
+            flex-shrink: 0;
         }
         
         .modal-header-left {
@@ -97,26 +102,32 @@
             background: #ff6666;
         }
         
-        /* TradingView-style layout: Tools LEFT, Chart RIGHT */
+        /* TradingView-style layout: Tools LEFT, Chart RIGHT - FIXED */
         .modal-body {
-            display: flex;
-            flex: 1;
-            overflow: hidden;
-            padding: 0;
-            gap: 0;
-            height: calc(95vh - 70px);
+            display: flex !important;
+            flex-direction: row !important;
+            flex: 1 !important;
+            overflow: hidden !important;
+            padding: 0 !important;
+            gap: 0 !important;
+            height: 100% !important;
+            min-height: 600px !important;
+            width: 100% !important;
         }
         
-        /* Left Tools Panel */
+        /* Left Tools Panel - Fixed */
         .modal-tools-panel {
-            width: 280px;
-            min-width: 280px;
-            background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
-            border-right: 2px solid #333;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-            padding: 15px;
+            width: 320px !important;
+            min-width: 320px !important;
+            max-width: 320px !important;
+            background: linear-gradient(180deg, #0d1117 0%, #161b22 100%) !important;
+            border-right: 2px solid #ff6b00 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            padding: 15px !important;
+            height: 100% !important;
         }
         
         .tools-section {
@@ -224,21 +235,27 @@
             cursor: pointer;
         }
         
-        /* Chart Section (Right) */
+        /* Chart Section (Right) - Fixed */
         .modal-chart-section {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: #0a0a15;
+            flex: 1 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            background: #0a0a15 !important;
+            overflow: hidden !important;
+            min-width: 0 !important;
+            height: 100% !important;
+        }
         }
         
         .chart-toolbar-top {
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 10px 15px;
+            padding: 8px 12px;
             background: linear-gradient(90deg, #0f3460, #16213e);
             border-bottom: 1px solid #333;
+            flex-shrink: 0;
+            flex-wrap: wrap;
         }
         
         .chart-toolbar-top select {
@@ -281,10 +298,22 @@
         }
         
         .chart-container {
+            flex: 1 !important;
+            min-height: 500px !important;
+            background: #0a0a15 !important;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            width: 100% !important;
+            height: 100% !important;
+        }
+        
+        /* Modal-specific chart container */
+        #modalChartContainer {
             flex: 1;
             min-height: 400px;
             background: #0a0a15;
-            border-radius: 10px;
+            border-radius: 0;
             overflow: hidden;
         }
         
@@ -890,6 +919,26 @@
             50% { opacity: 0.5; }
         }
         
+        /* Responsive - stack panels on smaller screens */
+        /* Only stack on very small screens (mobile) - Desktop/Tablet keeps side-by-side */
+        @media (max-width: 600px) {
+            .modal-body {
+                flex-direction: column;
+            }
+            .modal-tools-panel {
+                width: 100% !important;
+                min-width: 100% !important;
+                max-width: 100% !important;
+                max-height: 250px;
+                border-right: none !important;
+                border-bottom: 2px solid #ff6b00;
+            }
+            .modal-chart-section {
+                min-height: 300px;
+            }
+        }
+        
+        /* Live indicator */
         .live-indicator {
             display: inline-flex;
             align-items: center;
@@ -928,8 +977,16 @@
     </style>
 </head>
 <body>
+    <!-- Debug Status -->
+    <div id="debugStatus" style="background:#ff9800;color:#000;padding:15px 20px;font-size:16px;font-family:monospace;position:sticky;top:0;z-index:9999;width:100%;">
+        🔄 Loading v3.0...
+    </div>
+    
     <div class="header">
-        <h1>📈 Malaysia Stock Dashboard <span style="background:#ff6b00;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;margin-left:10px;">v2.11</span></h1>
+        <div>
+            <h1>📈 Malaysia Stock Dashboard</h1>
+            <span style="font-size:12px;color:#00d4ff;">v3.0 | Fixed modal layout</span>
+        </div>
         <div class="auto-refresh">
             <span class="live-indicator">
                 <span class="live-dot"></span>
@@ -1169,7 +1226,7 @@
                             <option value="">-- Select Stock --</option>
                         </select>
                         <div class="modal-title" id="modalTitle">Stock Details</div>
-                        <span style="font-size:12px;color:#666;margin-left:10px;">v2.11</span>
+                        <span style="font-size:12px;color:#666;margin-left:10px;">v3.0</span>
                     </div>
                     <button class="modal-close" onclick="closeModal()">✕ Close</button>
                 </div>
@@ -1177,6 +1234,9 @@
                 <div class="modal-body">
                     <!-- LEFT: Tools Panel (like TradingView) -->
                     <div class="modal-tools-panel">
+                        <div style="background:#ff6b00;color:#000;padding:10px;text-align:center;font-weight:bold;border-radius:5px;margin-bottom:15px;">
+                            🛠️ TOOLS
+                        </div>
                         <!-- Stock Selector -->
                         <div class="tools-section">
                             <div class="tools-section-title">📊 Stock</div>
@@ -1185,13 +1245,27 @@
                             </select>
                         </div>
                         
-                        <!-- Quick Info -->
-                        <div class="tools-section">
-                            <div class="tools-section-title">💰 Price Info</div>
-                            <div id="toolsPriceInfo" style="font-size:13px;line-height:1.8;">
-                                <div style="display:flex;justify-content:space-between;"><span style="color:#888;">Price:</span><span id="toolsPrice" style="color:#00d4ff;font-weight:bold;">--</span></div>
-                                <div style="display:flex;justify-content:space-between;"><span style="color:#888;">Change:</span><span id="toolsChange">--</span></div>
-                                <div style="display:flex;justify-content:space-between;"><span style="color:#888;">Volume:</span><span id="toolsVolume">--</span></div>
+                        <!-- Quick Info - Enhanced -->
+                        <div class="tools-section" style="background:linear-gradient(135deg,rgba(255,107,0,0.1),rgba(0,212,255,0.05));padding:12px;border-radius:8px;margin-bottom:15px;">
+                            <div class="tools-section-title" style="color:#ff6b00;">💰 Price Info</div>
+                            <div id="toolsPriceInfo" style="font-size:14px;line-height:2;">
+                                <div style="display:flex;justify-content:space-between;align-items:center;">
+                                    <span style="color:#888;">Price:</span>
+                                    <span id="toolsPrice" style="color:#00d4ff;font-weight:bold;font-size:18px;">--</span>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;align-items:center;">
+                                    <span style="color:#888;">Change:</span>
+                                    <span id="toolsChange" style="font-weight:bold;">--</span>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;align-items:center;">
+                                    <span style="color:#888;">Volume:</span>
+                                    <span id="toolsVolume" style="color:#aaa;">--</span>
+                                </div>
+                            </div>
+                            <!-- Quick Actions -->
+                            <div style="display:flex;gap:5px;margin-top:12px;">
+                                <button onclick="addToWatchlistFromModal()" style="flex:1;padding:8px;background:#238636;border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;">⭐ Watch</button>
+                                <button onclick="setAlertFromModal()" style="flex:1;padding:8px;background:#1f6feb;border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;">🔔 Alert</button>
                             </div>
                         </div>
                         
@@ -1244,34 +1318,8 @@
                             </div>
                         </div>
                         
-                        <!-- Indicators -->
-                        <div class="tools-section">
-                            <div class="tools-section-title">📈 Indicators</div>
-                            <div class="indicator-row">
-                                <input type="checkbox" id="showMA" onchange="loadModalChart()">
-                                <label for="showMA">MA (20, 50)</label>
-                            </div>
-                            <div class="indicator-row">
-                                <input type="checkbox" id="showEMA" onchange="loadModalChart()">
-                                <label for="showEMA">EMA (12, 26)</label>
-                            </div>
-                            <div class="indicator-row">
-                                <input type="checkbox" id="showBB" onchange="loadModalChart()">
-                                <label for="showBB">Bollinger Bands</label>
-                            </div>
-                            <div class="indicator-row">
-                                <input type="checkbox" id="showVolume" onchange="loadModalChart()" checked>
-                                <label for="showVolume">Volume</label>
-                            </div>
-                            <div class="indicator-row">
-                                <input type="checkbox" id="showMACD" onchange="loadModalChart()">
-                                <label for="showMACD">MACD</label>
-                            </div>
-                            <div class="indicator-row">
-                                <input type="checkbox" id="showRSI" onchange="loadModalChart()">
-                                <label for="showRSI">RSI</label>
-                            </div>
-                        </div>
+                        <!-- Indicators (in right panel toolbar) -->
+                        <!-- Indicators are toggled in the chart toolbar above -->
                         
                         <!-- Alerts -->
                         <div class="tools-section">
@@ -1304,7 +1352,7 @@
                     <div class="modal-chart-section">
                         <!-- Chart Toolbar -->
                         <div class="chart-toolbar-top">
-                            <select id="modalTimeframe" onchange="loadModalChart()" style="padding:6px 12px;">
+                            <select id="modalTimeframe" onchange="loadModalChart()">
                                 <option value="1D">1D</option>
                                 <option value="1W">1W</option>
                                 <option value="1MO">1M</option>
@@ -1312,61 +1360,29 @@
                                 <option value="6MO">6M</option>
                                 <option value="1Y">1Y</option>
                             </select>
+                            
+                            <!-- Drawing Tools (Inline in toolbar) -->
+                            <div class="drawing-toolbar">
+                                <button onclick="setDrawingMode('parallel')" id="toolbar-parallel" title="Parallel Line">⚡</button>
+                                <button onclick="setDrawingMode('horizontal')" id="toolbar-horizontal" title="Horizontal Line">━</button>
+                                <button onclick="setDrawingMode('trendline')" id="toolbar-trendline" title="Trend Line">📈</button>
+                                <button onclick="setDrawingMode('ray')" id="toolbar-ray" title="Ray Line">➡️</button>
+                                <button onclick="setDrawingMode('vertical')" id="toolbar-vertical" title="Vertical Line">⏱️</button>
+                                <button onclick="undoLastDrawing()" id="toolbar-undo" title="Undo">↩️</button>
+                                <button onclick="clearDrawings()" id="toolbar-clear" title="Clear All">🗑️</button>
+                            </div>
+                            
                             <span id="drawingInstructions" style="display:none;padding:5px 10px;background:rgba(0,212,255,0.2);border-radius:5px;font-size:12px;color:#00d4ff;">
                                 <span id="instructionText">Click to draw...</span>
                             </span>
                         </div>
                         
-                        <!-- Chart Container -->
-                        <div class="chart-container" id="modalChartContainer"></div>
-                    </div>
-                            <button onclick="setDrawingMode('horizontal')" id="tool-horizontal" title="Draw horizontal support/resistance">➖ H-Line</button>
-                            <button onclick="setDrawingMode('trendline')" id="tool-trendline" title="Draw trend line">📈 Trend</button>
-                            <button onclick="setDrawingMode('ray')" id="tool-ray" title="Extended ray line">➡️ Ray</button>
-                            <button onclick="setDrawingMode('vertical')" id="tool-vertical" title="Vertical time line">⏱️ V-Line</button>
-                            
-                            <!-- Line Style -->
-                            <select id="lineStyle" style="padding:5px 8px;border-radius:5px;background:#222;color:#fff;border:1px solid #444;font-size:12px;">
-                                <option value="solid">━ Solid</option>
-                                <option value="dashed">-- Dashed</option>
-                                <option value="dotted">··· Dotted</option>
-                            </select>
-                            
-                            <!-- Line Width -->
-                            <select id="lineWidth" style="padding:5px 8px;border-radius:5px;background:#222;color:#fff;border:1px solid #444;font-size:12px;">
-                                <option value="1">1px</option>
-                                <option value="2" selected>2px</option>
-                                <option value="3">3px</option>
-                                <option value="4">4px</option>
-                            </select>
-                            
-                            <button onclick="undoLastDrawing()" id="tool-undo" title="Undo last drawing">↩️ Undo</button>
-                            <button onclick="clearDrawings()" id="tool-clear" title="Clear all drawings">🗑️ Clear</button>
-                            
-                            <span style="flex:1"></span>
-                            <select id="modalTimeframe" onchange="loadModalChart()" style="padding:5px 10px;border-radius:5px;background:#222;color:#fff;border:1px solid #444;">
-                                <option value="1D">1D</option>
-                                <option value="1W">1W</option>
-                                <option value="1MO">1M</option>
-                                <option value="3MO">3M</option>
-                                <option value="6MO">6M</option>
-                                <option value="1Y">1Y</option>
-                            </select>
-                        </div>
-                        
-                        <!-- Drawing Instructions -->
-                        <div id="drawingInstructions" style="display:none; padding: 8px 15px; background: rgba(0,212,255,0.15); border-left: 3px solid #00d4ff; margin: 5px 10px; border-radius: 5px; font-size: 13px;">
-                            <span id="instructionText">Click on chart to start drawing...</span>
-                        </div>
-                        
                         <!-- Indicator Toggles -->
-                        <div class="indicator-toggle" style="padding:10px;">
+                        <div class="indicator-toggle">
                             <label><input type="checkbox" id="showMA" onchange="loadModalChart()"> MA</label>
                             <label><input type="checkbox" id="showEMA" onchange="loadModalChart()"> EMA</label>
-                            <label><input type="checkbox" id="showBB" onchange="loadModalChart()"> Bollinger</label>
-                            <label><input type="checkbox" id="showVolume" onchange="loadModalChart()" checked> Volume</label>
-                            <label><input type="checkbox" id="showMACD" onchange="loadModalChart()"> MACD</label>
-                            <label><input type="checkbox" id="showRSI" onchange="loadModalChart()"> RSI</label>
+                            <label><input type="checkbox" id="showBB" onchange="loadModalChart()"> BB</label>
+                            <label><input type="checkbox" id="showVolume" onchange="loadModalChart()" checked> Vol</label>
                         </div>
                         
                         <!-- Chart Container -->
@@ -1388,8 +1404,50 @@
         let refreshInterval = null;
         let sectorData = [];
         
-        // Use relative path - works on both PC and phone on same network
-        const API_BASE = '/api';
+        // ALWAYS use the IP address - don't auto-detect (safer)
+        // Allow URL parameter override for testing: index.html?api=http://localhost:8888/api
+        const urlParams = new URLSearchParams(window.location.search);
+        // Use relative path - automatically uses the server that served this page
+        let API_BASE = urlParams.get('api') || '/api';
+        
+        console.log('Using API_BASE:', API_BASE);
+        setDebug('API: ' + API_BASE + ' | Testing connection...');
+        
+        // Test API immediately - with explicit fetch
+        setDebug('Testing API: ' + API_BASE + '/stocks...');
+        fetch('/api/stocks').then(r => {
+            setDebug('API responded! Status: ' + r.status);
+            return r.json();
+        }).then(d => {
+            setDebugDone('✅ API OK! ' + Object.keys(d).length + ' stocks');
+        }).catch(e => {
+            // More detailed error diagnostics
+            let errorMsg = e.message;
+            if (e.name === 'TypeError' && errorMsg.includes('fetch')) {
+                errorMsg = 'Network error - Cannot reach ' + API_BASE + '. Check if Flask server is running on 192.168.250.208:8888';
+            }
+            setDebugError('❌ API Failed: ' + errorMsg);
+            
+            // Show detailed error in the error div
+            const errorDiv = document.getElementById('error');
+            errorDiv.innerHTML = `
+                <div style="padding:15px;">
+                    <strong>⚠️ Cannot Connect to API Server</strong><br><br>
+                    <p><strong>Server URL:</strong> ${API_BASE}</p>
+                    <p><strong>Error:</strong> ${e.message}</p>
+                    <hr style="border-color:#444;margin:15px 0;">
+                    <p style="color:#ffaa00;"><strong>Troubleshooting:</strong></p>
+                    <ul style="margin-left:20px;color:#ccc;">
+                        <li>Is Flask server running? (python app.py)</li>
+                        <li>Can your PC ping 192.168.250.208?</li>
+                        <li>Is port 8888 open on the server?</li>
+                        <li>Try accessing <a href="http://192.168.250.208:8888/api/stocks" target="_blank" style="color:#00d4ff;">http://192.168.250.208:8888/api/stocks</a> directly in browser</li>
+                        <li>If server is on THIS PC, change API_BASE to 'http://localhost:8888/api'</li>
+                    </ul>
+                </div>
+            `;
+            errorDiv.style.display = 'block';
+        });
         
         // Tab Management
         function switchTab(tab) {
@@ -1411,17 +1469,34 @@
         
         // KLCI Functions
         async function loadKLCIData() {
-            await Promise.all([
-                loadKLCIHeader(),
-                loadSectorTabs(),
-                loadKLCIQuotes()
-            ]);
+            console.log('loadKLCIData: Starting...');
+            try {
+                await loadKLCIHeader();
+                console.log('loadKLCIData: Header loaded');
+            } catch(e) {
+                console.error('loadKLCIHeader failed:', e);
+            }
+            try {
+                await loadSectorTabs();
+                console.log('loadKLCIData: Tabs loaded');
+            } catch(e) {
+                console.error('loadSectorTabs failed:', e);
+            }
+            try {
+                await loadKLCIQuotes();
+                console.log('loadKLCIData: Quotes loaded');
+            } catch(e) {
+                console.error('loadKLCIQuotes failed:', e);
+            }
         }
         
         async function loadKLCIHeader() {
             try {
+                console.log('Loading KLCI from:', `${API_BASE}/klci/index`);
                 const response = await fetch(`${API_BASE}/klci/index`);
+                if (!response.ok) throw new Error('API error: ' + response.status);
                 const data = await response.json();
+                console.log('KLCI data:', data);
                 
                 const container = document.getElementById('klciHeader');
                 
@@ -1484,8 +1559,10 @@
         
         async function loadKLCIQuotes() {
             try {
+                console.log('Loading KLCI quotes, sector:', currentSector);
                 const response = await fetch(`${API_BASE}/klci/quote?sector=${currentSector}`);
                 const data = await response.json();
+                console.log('KLCI quotes received:', data.quotes ? data.quotes.length : 0, 'stocks');
                 
                 if (data.error) {
                     showError(data.error);
@@ -1583,10 +1660,13 @@
                 }
                 
                 const row = document.createElement('tr');
-                row.onclick = () => viewStock(stock.ticker);
+                row.onclick = (e) => {
+                    // Single click - just highlight, don't switch tabs
+                    e.stopPropagation();
+                };
                 row.ondblclick = () => openModal(stock.ticker);
                 row.style.cursor = 'pointer';
-                row.title = 'Double-click to open detailed view with charts and alerts';
+                row.title = 'Double-click to open detailed view with charts and tools';
                 
                 const changeClass = (stock.change_pct || 0) >= 0 ? 'positive' : 'negative';
                 const changeSymbol = (stock.change_pct || 0) >= 0 ? '+' : '';
@@ -1642,14 +1722,67 @@
             loadStock();
         }
         
+        // Debug helper
+        function setDebug(msg) {
+            document.getElementById('debugStatus').textContent = '🔄 ' + msg;
+            console.log('DEBUG:', msg);
+        }
+        function setDebugDone(msg) {
+            document.getElementById('debugStatus').textContent = '✅ ' + msg;
+            document.getElementById('debugStatus').style.background = '#4caf50';
+            document.getElementById('debugStatus').style.color = '#fff';
+        }
+        function setDebugError(msg) {
+            document.getElementById('debugStatus').textContent = '❌ ' + msg;
+            document.getElementById('debugStatus').style.background = '#f44336';
+            document.getElementById('debugStatus').style.color = '#fff';
+        }
+        
         // Stock Tab Functions
         async function init() {
-            await loadStockList();
-            await loadStockSelects(); // Load selects for watchlist/alerts
-            await loadKLCIData();
-            await loadWatchlist();
-            await loadAlerts();
-            await loadMethodologyRules();
+            setDebug('Starting init...');
+            console.log('=== INIT STARTED ===');
+            try {
+                await loadStockList();
+                setDebug('Stock list loaded');
+            } catch(e) {
+                setDebugError('Stock list failed: ' + e.message);
+                console.error('loadStockList failed:', e);
+            }
+            
+            try {
+                await loadStockSelects();
+                setDebug('Stock selects loaded');
+            } catch(e) {
+                setDebugError('Stock selects failed: ' + e.message);
+                console.error('loadStockSelects failed:', e);
+            }
+            
+            try {
+                await loadKLCIData();
+                setDebugDone('KLCI data loaded - Ready!');
+            } catch(e) {
+                setDebugError('KLCI data failed: ' + e.message);
+                console.error('loadKLCIData failed:', e);
+            }
+            
+            try {
+                await loadWatchlist();
+            } catch(e) {
+                console.error('loadWatchlist failed:', e);
+            }
+            
+            try {
+                await loadAlerts();
+            } catch(e) {
+                console.error('loadAlerts failed:', e);
+            }
+            
+            try {
+                await loadMethodologyRules();
+            } catch(e) {
+                console.error('loadMethodologyRules failed:', e);
+            }
             
             // Check alerts every 60 seconds
             setInterval(checkAlerts, 60000);
@@ -1669,8 +1802,11 @@
         
         async function loadStockList() {
             try {
+                console.log('Loading from:', API_BASE);
                 const response = await fetch(`${API_BASE}/stocks`);
+                if (!response.ok) throw new Error('API error: ' + response.status);
                 const stocks = await response.json();
+                console.log('Stocks loaded:', Object.keys(stocks).length);
                 
                 const select = document.getElementById('stockSelect');
                 for (const [name, ticker] of Object.entries(stocks)) {
@@ -1680,7 +1816,8 @@
                     select.appendChild(option);
                 }
             } catch (e) {
-                showError('Cannot connect to API. Make sure app.py is running.');
+                console.error('Error loading stocks:', e);
+                showError('Cannot connect to API. Make sure app.py is running. Error: ' + e.message);
             }
         }
         
@@ -2602,8 +2739,45 @@
             }
         }
         
+        // Quick action: Add to watchlist from modal
+        async function addToWatchlistFromModal() {
+            const ticker = modalTicker;
+            if (!ticker) {
+                alert('No stock selected');
+                return;
+            }
+            
+            try {
+                let watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
+                if (!watchlist.includes(ticker)) {
+                    watchlist.push(ticker);
+                    localStorage.setItem('watchlist', JSON.stringify(watchlist));
+                    alert(`${ticker} added to watchlist!`);
+                } else {
+                    alert(`${ticker} is already in watchlist`);
+                }
+            } catch (e) {
+                console.error('Error adding to watchlist:', e);
+            }
+        }
+        
+        // Quick action: Set alert pre-fill
+        function setAlertFromModal() {
+            const ticker = modalTicker;
+            if (!ticker) {
+                alert('No stock selected');
+                return;
+            }
+            // Scroll to alert section and focus
+            const alertSection = document.querySelector('.tools-section');
+            if (alertSection) {
+                alertSection.scrollIntoView({behavior: 'smooth'});
+            }
+            document.getElementById('modalAlertValue').focus();
+        }
+        
         // ========== PARALLEL LINE DRAWING SYSTEM ==========
-        // Variables already declared above - just reassign
+        // Variables already declared above (line ~2335) - just reset them here
         drawingMode = null;
         drawnLines = [];  // Array of line objects
         drawingState = 0;  // 0: idle, 1: first point clicked, 2: second point clicked
@@ -2611,7 +2785,7 @@
         secondPoint = null;
         tempLineSeries = null;
         
-        // Drawing series storage
+        // Drawing series storage - already declared above
         lineSeriesMap = {};  // Store line series by ID
         
         function setDrawingMode(mode) {
@@ -2631,8 +2805,17 @@
             firstPoint = null;
             secondPoint = null;
             
+            // Deactivate all drawing buttons (both left panel and toolbar)
             document.querySelectorAll('.drawing-toolbar button').forEach(b => b.classList.remove('active'));
-            document.getElementById(`tool-${mode}`).classList.add('active');
+            
+            // Also deactivate left panel tool buttons
+            document.querySelectorAll('.modal-tools-panel .tool-btn').forEach(b => b.classList.remove('active'));
+            
+            // Activate the clicked button (try both IDs)
+            const toolbarBtn = document.getElementById(`toolbar-${mode}`);
+            const panelBtn = document.getElementById(`tool-${mode}`);
+            if (toolbarBtn) toolbarBtn.classList.add('active');
+            if (panelBtn) panelBtn.classList.add('active');
             
             // Show instructions
             const instructions = document.getElementById('drawingInstructions');
@@ -2990,8 +3173,18 @@
             // This is a placeholder - the actual implementation is in the existing code
         };
         
-        // Start
-        document.addEventListener('DOMContentLoaded', init);
+        // Start - wait for DOM then call init
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM ready - calling init()');
+            document.getElementById('debugStatus').textContent = '⚡ DOM ready, starting init()...';
+            init().then(() => {
+                document.getElementById('debugStatus').textContent = '✅ All loaded successfully!';
+                document.getElementById('debugStatus').style.background = '#4caf50';
+            }).catch(e => {
+                document.getElementById('debugStatus').textContent = '❌ init() failed: ' + e.message;
+                document.getElementById('debugStatus').style.background = '#f44336';
+            });
+        });
     </script>
 </body>
 </html>
