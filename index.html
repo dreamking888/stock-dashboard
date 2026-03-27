@@ -312,6 +312,8 @@
         #modalChartContainer {
             flex: 1;
             min-height: 400px;
+            width: 100% !important;
+            height: 100% !important;
             background: #0a0a15;
             border-radius: 0;
             overflow: hidden;
@@ -2469,9 +2471,13 @@
                     modalChart.remove();
                 }
                 
+                // Get dimensions - fallback to reasonable defaults if not visible yet
+                const chartWidth = container.clientWidth || 800;
+                const chartHeight = container.clientHeight || 500;
+                
                 modalChart = LightweightCharts.createChart(container, {
-                    width: container.clientWidth,
-                    height: container.clientHeight,
+                    width: chartWidth,
+                    height: chartHeight,
                     layout: {
                         background: { type: 'solid', color: '#0a0a15' },
                         textColor: '#d1d4dc',
