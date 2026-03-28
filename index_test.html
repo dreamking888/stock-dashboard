@@ -1,0 +1,3139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📈 Malaysia Stock Dashboard v2.10</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.0.0/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        
+        /* Modal/Popup Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            overflow: auto;
+        }
+        
+        .modal-overlay.active {
+            display: block;
+        }
+        
+        .modal-content {
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            margin: 20px auto;
+            width: 95%;
+            max-width: 1400px;
+            max-height: 95vh;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .modal-header {
+            background: linear-gradient(90deg, #0f3460, #16213e);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #00d4ff;
+        }
+        
+        .modal-header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .modal-header select {
+            padding: 8px 15px;
+            border-radius: 8px;
+            border: 2px solid #00d4ff;
+            background: #1a1a2e;
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .modal-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+        
+        .modal-close {
+            background: #ff4444;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .modal-close:hover {
+            background: #ff6666;
+        }
+        
+        /* TradingView-style layout: Tools LEFT, Chart RIGHT */
+        .modal-body {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            padding: 0;
+            gap: 0;
+            height: calc(95vh - 70px);
+        }
+        
+        /* Left Tools Panel */
+        .modal-tools-panel {
+            width: 280px;
+            min-width: 280px;
+            background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+            border-right: 3px solid #ff6b00;  /* Bright orange border for visibility */
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 15px;
+        }
+        
+        .tools-section {
+            margin-bottom: 20px;
+        }
+        
+        .tools-section-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #333;
+        }
+        
+        .tool-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding: 10px 12px;
+            margin: 4px 0;
+            border: 1px solid #333;
+            background: rgba(255,255,255,0.05);
+            color: #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            text-align: left;
+        }
+        
+        .tool-btn:hover {
+            background: rgba(0,212,255,0.15);
+            border-color: #00d4ff;
+        }
+        
+        .tool-btn.active {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: #000;
+            border-color: #00d4ff;
+            font-weight: bold;
+        }
+        
+        .tool-btn-icon {
+            font-size: 16px;
+            width: 24px;
+            text-align: center;
+        }
+        
+        /* Color picker in tools */
+        .color-picker-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 8px 0;
+        }
+        
+        .color-picker-row label {
+            font-size: 12px;
+            color: #888;
+            min-width: 60px;
+        }
+        
+        .color-picker-row input[type="color"] {
+            width: 40px;
+            height: 30px;
+            padding: 0;
+            border: 1px solid #444;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .color-picker-row select {
+            flex: 1;
+            padding: 6px 8px;
+            border-radius: 5px;
+            border: 1px solid #333;
+            background: #1a1a2e;
+            color: #fff;
+            font-size: 12px;
+        }
+        
+        /* Quick indicators */
+        .indicator-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 6px 0;
+            padding: 8px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 5px;
+        }
+        
+        .indicator-row input[type="checkbox"] {
+            accent-color: #00d4ff;
+            width: 16px;
+            height: 16px;
+        }
+        
+        .indicator-row label {
+            font-size: 12px;
+            color: #ccc;
+            cursor: pointer;
+        }
+        
+        /* Chart Section (Right) */
+        .modal-chart-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #0a0a15;
+        }
+        
+        .chart-toolbar-top {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            background: linear-gradient(90deg, #0f3460, #16213e);
+            border-bottom: 1px solid #333;
+        }
+        
+        .chart-toolbar-top select {
+            padding: 6px 12px;
+            border-radius: 5px;
+            border: 1px solid #444;
+            background: #1a1a2e;
+            color: #fff;
+            font-size: 13px;
+        }
+        
+        .modal-sidebar {
+            display: none; /* Hide old sidebar, using left panel now */
+        }
+        
+        .drawing-toolbar {
+            display: flex;
+            gap: 5px;
+            padding: 10px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .drawing-toolbar button {
+            padding: 8px 12px;
+            border: 1px solid #444;
+            background: #222;
+            color: #aaa;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .drawing-toolbar button:hover, .drawing-toolbar button.active {
+            background: #00d4ff;
+            color: #000;
+            border-color: #00d4ff;
+        }
+        
+        .chart-container {
+            flex: 1;
+            min-height: 400px;
+            background: #0a0a15;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .panel {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 15px;
+        }
+        
+        .panel-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #00d4ff;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #333;
+        }
+        
+        .stock-info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        .stock-info-item {
+            background: rgba(255,255,255,0.05);
+            padding: 10px;
+            border-radius: 8px;
+        }
+        
+        .stock-info-label {
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .stock-info-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        .stock-info-value.positive { color: #00ff88; }
+        .stock-info-value.negative { color: #ff4444; }
+        
+        .signal-list {
+            list-style: none;
+        }
+        
+        .signal-list li {
+            padding: 8px 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .signal-list li.bullish {
+            background: rgba(0, 255, 136, 0.15);
+            border-left: 3px solid #00ff88;
+        }
+        
+        .signal-list li.bearish {
+            background: rgba(255, 68, 68, 0.15);
+            border-left: 3px solid #ff4444;
+        }
+        
+        .signal-list li.neutral {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 3px solid #888;
+        }
+        
+        .alert-form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .alert-form select, .alert-form input {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            background: #1a1a2e;
+            color: #fff;
+            font-size: 14px;
+        }
+        
+        .alert-form button {
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .alert-form button:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 20px rgba(0,212,255,0.3);
+        }
+        
+        .indicator-toggle {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        
+        .indicator-toggle label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        
+        .indicator-toggle input[type="checkbox"] {
+            accent-color: #00d4ff;
+        }
+        
+        .header {
+            background: linear-gradient(90deg, #0f3460 0%, #16213e 100%);
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            color: #00d4ff;
+        }
+        
+        .header .refresh-btn {
+            background: #00d4ff;
+            color: #1a1a2e;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .header .refresh-btn:hover {
+            background: #00a8cc;
+            transform: scale(1.05);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            background: rgba(255,255,255,0.05);
+            padding: 5px;
+            border-radius: 12px;
+            width: fit-content;
+        }
+        
+        .tab-btn {
+            padding: 12px 24px;
+            border: none;
+            background: transparent;
+            color: #888;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        
+        .tab-btn:hover {
+            color: #fff;
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .tab-btn.active {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: #1a1a2e;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* KLCI Index Tab */
+        .klci-header {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .klci-card {
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            border-radius: 15px;
+            padding: 20px 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .klci-card.main {
+            background: linear-gradient(145deg, #0f3460, #16213e);
+            border: 2px solid #00d4ff;
+        }
+        
+        .klci-label {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+        
+        .klci-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+        
+        .klci-change {
+            font-size: 18px;
+            margin-top: 5px;
+        }
+        
+        .klci-change.positive { color: #00ff88; }
+        .klci-change.negative { color: #ff4444; }
+        
+        /* Sector Tabs */
+        .sector-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .sector-btn {
+            padding: 10px 16px;
+            border: 2px solid #333;
+            background: rgba(255,255,255,0.05);
+            color: #aaa;
+            font-size: 13px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .sector-btn:hover {
+            border-color: #555;
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .sector-btn.active {
+            border-color: #00d4ff;
+            background: rgba(0,212,255,0.2);
+            color: #fff;
+        }
+        
+        .sector-btn .count {
+            font-size: 11px;
+            background: rgba(255,255,255,0.2);
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+        
+        .sector-btn.up .count { background: rgba(0,255,136,0.3); }
+        .sector-btn.down .count { background: rgba(255,68,68,0.3); }
+        
+        /* Stock Table */
+        .stock-table-container {
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        
+        .stock-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .stock-table th {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            text-align: left;
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: sticky;
+            top: 0;
+        }
+        
+        .stock-table td {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .stock-table tr:hover {
+            background: rgba(0,212,255,0.1);
+            cursor: pointer;
+        }
+        
+        .stock-table tr.sector-header {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .stock-table tr.sector-header td {
+            font-weight: bold;
+            color: #00d4ff;
+            padding: 10px 15px;
+        }
+        
+        .stock-name-cell {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .stock-name {
+            font-weight: 600;
+            color: #fff;
+        }
+        
+        .stock-ticker {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .stock-sector {
+            font-size: 11px;
+            color: #00d4ff;
+            background: rgba(0,212,255,0.2);
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-top: 4px;
+        }
+        
+        .price-cell {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .change-cell {
+            font-weight: 600;
+        }
+        
+        .change-cell.positive { color: #00ff88; }
+        .change-cell.negative { color: #ff4444; }
+        
+        .change-bar {
+            width: 60px;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        
+        .change-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+        }
+        
+        .change-bar-fill.positive { background: #00ff88; }
+        .change-bar-fill.negative { background: #ff4444; }
+        
+        /* Sector Summary Bar */
+        .sector-summary {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .sector-pill {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid #333;
+        }
+        
+        .sector-pill.up {
+            border-color: #00ff88;
+            background: rgba(0,255,136,0.1);
+        }
+        
+        .sector-pill.down {
+            border-color: #ff4444;
+            background: rgba(255,68,68,0.1);
+        }
+        
+        .sector-pill .icon { font-size: 16px; }
+        .sector-pill .name { color: #aaa; }
+        .sector-pill .change { font-weight: 600; }
+        
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        select, .timeframe-btn {
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 2px solid #0f3460;
+            background: #16213e;
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        select:hover, .timeframe-btn:hover {
+            border-color: #00d4ff;
+        }
+        
+        select:focus, .timeframe-btn:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+        
+        .timeframe-btn.active {
+            background: #00d4ff;
+            color: #1a1a2e;
+            border-color: #00d4ff;
+        }
+        
+        .price-card {
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        
+        .price-display {
+            display: flex;
+            align-items: baseline;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .current-price {
+            font-size: 48px;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+        
+        .price-change {
+            font-size: 20px;
+            padding: 8px 16px;
+            border-radius: 8px;
+        }
+        
+        .price-change.positive {
+            background: rgba(0, 255, 0, 0.2);
+            color: #00ff88;
+        }
+        
+        .price-change.negative {
+            background: rgba(255, 0, 0, 0.2);
+            color: #ff4444;
+        }
+        
+        .stock-name-display {
+            font-size: 18px;
+            color: #888;
+            margin-bottom: 15px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-item {
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .chart-container {
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .chart-title {
+            font-size: 18px;
+            color: #00d4ff;
+        }
+        
+        #chart {
+            width: 100%;
+            height: 400px;
+        }
+        
+        .indicators-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .indicator-card {
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        
+        .indicator-title {
+            font-size: 16px;
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+        
+        .indicator-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .indicator-value.positive { color: #00ff88; }
+        .indicator-value.negative { color: #ff4444; }
+        .indicator-value.neutral { color: #ffaa00; }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #00d4ff;
+        }
+        
+        .error {
+            background: rgba(255,0,0,0.1);
+            border: 1px solid #ff4444;
+            color: #ff4444;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .auto-refresh {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: auto;
+        }
+        
+        .auto-refresh label {
+            color: #888;
+            font-size: 14px;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #00ff88;
+            font-size: 14px;
+        }
+        
+        .live-dot {
+            width: 10px;
+            height: 10px;
+            background: #00ff88;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .klci-header {
+                flex-direction: column;
+            }
+            
+            .stock-table {
+                font-size: 14px;
+            }
+            
+            .stock-table th, .stock-table td {
+                padding: 10px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Debug Status -->
+    <div id="debugStatus" style="background:#ff9800;color:#000;padding:15px 20px;font-size:16px;font-family:monospace;position:sticky;top:0;z-index:9999;width:100%;">
+        🔄 Loading v2.9...
+    </div>
+    
+    <div class="header">
+        <div>
+            <h1>📈 Malaysia Stock Dashboard</h1>
+            <span style="font-size:12px;color:#00d4ff;">v2.9 | Fixed init()</span>
+        </div>
+        <div class="auto-refresh">
+            <span class="live-indicator">
+                <span class="live-dot"></span>
+                LIVE
+            </span>
+            <label>
+                <input type="checkbox" id="autoRefresh" checked> Auto-refresh
+            </label>
+            <button class="refresh-btn" onclick="refreshAll()">🔄 Refresh</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Tab Navigation -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('klci')">🇲🇾 KLCI Index</button>
+            <button class="tab-btn" onclick="switchTab('stocks')">📈 Stocks</button>
+            <button class="tab-btn" onclick="switchTab('watchlist')">⭐ Watchlist</button>
+            <button class="tab-btn" onclick="switchTab('alerts')">🔔 Alerts</button>
+        </div>
+        
+        <!-- KLCI Index Tab -->
+        <div id="klci-tab" class="tab-content active">
+            <!-- KLCI Header Cards -->
+            <div class="klci-header" id="klciHeader">
+                <div class="loading">Loading KLCI data...</div>
+            </div>
+            
+            <!-- Sector Pills Summary -->
+            <div class="sector-summary" id="sectorSummary"></div>
+            
+            <!-- Sector Tabs -->
+            <div class="sector-tabs" id="sectorTabs">
+                <button class="sector-btn active" onclick="selectSector('all')">
+                    📊 All <span class="count" id="count-all">--</span>
+                </button>
+            </div>
+            
+            <!-- Stock Table -->
+            <div class="stock-table-container">
+                <table class="stock-table" id="klciTable">
+                    <thead>
+                        <tr>
+                            <th>Stock</th>
+                            <th>Price</th>
+                            <th>Change</th>
+                            <th>% Change</th>
+                            <th>Volume</th>
+                        </tr>
+                    </thead>
+                    <tbody id="klciTableBody">
+                        <tr><td colspan="5" class="loading">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Stocks Tab -->
+        <div id="stocks-tab" class="tab-content">
+            <!-- Controls -->
+            <div class="controls">
+                <select id="stockSelect" onchange="loadStock()">
+                    <option value="">-- Select Stock --</option>
+                </select>
+                <button class="timeframe-btn active" onclick="setTimeframe('1D')" data-tf="1D">1D</button>
+                <button class="timeframe-btn" onclick="setTimeframe('1W')" data-tf="1W">1W</button>
+                <button class="timeframe-btn" onclick="setTimeframe('1MO')" data-tf="1MO">1M</button>
+                <button class="timeframe-btn" onclick="setTimeframe('3MO')" data-tf="3MO">3M</button>
+                <button class="timeframe-btn" onclick="setTimeframe('6MO')" data-tf="6MO">6M</button>
+                <button class="timeframe-btn" onclick="setTimeframe('1Y')" data-tf="1Y">1Y</button>
+                <button class="timeframe-btn" onclick="setTimeframe('5Y')" data-tf="5Y">5Y</button>
+            </div>
+            
+            <!-- Price Card -->
+            <div class="price-card" id="priceCard" style="display: none;">
+                <div class="stock-name-display" id="stockName">--</div>
+                <div class="price-display">
+                    <div class="current-price" id="currentPrice">--</div>
+                    <div class="price-change positive" id="priceChange">--</div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">Previous Close</div>
+                        <div class="stat-value" id="prevClose">--</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Day High</div>
+                        <div class="stat-value" id="dayHigh">--</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Day Low</div>
+                        <div class="stat-value" id="dayLow">--</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">52W High</div>
+                        <div class="stat-value" id="week52High">--</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">52W Low</div>
+                        <div class="stat-value" id="week52Low">--</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Volume</div>
+                        <div class="stat-value" id="volume">--</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Chart -->
+            <div class="chart-container" id="chartContainer" style="display: none;">
+                <div class="chart-header">
+                    <div class="chart-title">Price Chart</div>
+                </div>
+                <div id="chart"></div>
+            </div>
+            
+            <!-- Technical Indicators -->
+            <div class="indicators-section" id="indicatorsSection" style="display: none;">
+                <div class="indicator-card">
+                    <div class="indicator-title">RSI (14)</div>
+                    <div class="indicator-value" id="rsiValue">--</div>
+                    <div class="stat-label" id="rsiSignal">--</div>
+                </div>
+                <div class="indicator-card">
+                    <div class="indicator-title">MACD</div>
+                    <div class="indicator-value" id="macdValue">--</div>
+                    <div class="stat-label" id="macdSignal">--</div>
+                </div>
+                <div class="indicator-card">
+                    <div class="indicator-title">MA20</div>
+                    <div class="indicator-value" id="ma20Value">--</div>
+                </div>
+                <div class="indicator-card">
+                    <div class="indicator-title">MA50</div>
+                    <div class="indicator-value" id="ma50Value">--</div>
+                </div>
+                <div class="indicator-card">
+                    <div class="indicator-title">Bollinger Upper</div>
+                    <div class="indicator-value" id="bbUpper">--</div>
+                </div>
+                <div class="indicator-card">
+                    <div class="indicator-title">Bollinger Lower</div>
+                    <div class="indicator-value" id="bbLower">--</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Watchlist Tab -->
+        <div id="watchlist-tab" class="tab-content">
+            <div class="controls">
+                <select id="watchlistStockSelect" onchange="addToWatchlistFromSelect()">
+                    <option value="">-- Add Stock to Watchlist --</option>
+                </select>
+                <button class="refresh-btn" onclick="loadWatchlist()">🔄 Refresh</button>
+            </div>
+            <div class="stock-table-container">
+                <table class="stock-table" id="watchlistTable">
+                    <thead>
+                        <tr>
+                            <th>Stock</th>
+                            <th>Price</th>
+                            <th>Change</th>
+                            <th>% Change</th>
+                            <th>Volume</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="watchlistTableBody">
+                        <tr><td colspan="6" class="loading">Loading watchlist...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="watchlistEmpty" style="text-align: center; padding: 40px; color: #888; display: none;">
+                <p>Your watchlist is empty.</p>
+                <p>Select a stock above to add it to your watchlist.</p>
+            </div>
+        </div>
+        
+        <!-- Alerts Tab -->
+        <div id="alerts-tab" class="tab-content">
+            <!-- Add Alert Form -->
+            <div class="controls" style="margin-bottom: 20px;">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                    <select id="alertStockSelect" style="min-width: 150px;">
+                        <option value="">-- Select Stock --</option>
+                    </select>
+                    <select id="alertType" style="min-width: 120px;">
+                        <option value="price">💰 Price</option>
+                        <option value="rsi">📊 RSI</option>
+                        <option value="macd">📈 MACD</option>
+                    </select>
+                    <select id="alertCondition" style="min-width: 120px;">
+                        <option value="above">Above</option>
+                        <option value="below">Below</option>
+                        <option value="crossover">MACD Cross Up</option>
+                        <option value="crossunder">MACD Cross Down</option>
+                    </select>
+                    <input type="number" id="alertValue" placeholder="Value" step="0.01" style="width: 100px; padding: 8px; border-radius: 8px; border: 1px solid #333; background: #1a1a2e; color: #fff;">
+                    <button class="refresh-btn" onclick="addAlert()">➕ Add Alert</button>
+                </div>
+            </div>
+            
+            <!-- Active Alerts -->
+            <h3 style="margin: 20px 0 10px;">🔔 Active Alerts</h3>
+            <div class="stock-table-container">
+                <table class="stock-table" id="alertsTable">
+                    <thead>
+                        <tr>
+                            <th>Stock</th>
+                            <th>Type</th>
+                            <th>Condition</th>
+                            <th>Target</th>
+                            <th>Current</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="alertsTableBody">
+                        <tr><td colspan="7" class="loading">Loading alerts...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Methodology Rules Info -->
+            <h3 style="margin: 30px 0 10px;">📚 Available Methodology Rules</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; margin-bottom: 20px;" id="methodologyRules">
+                <div class="loading">Loading methodology rules...</div>
+            </div>
+        </div>
+        
+        <!-- Stock Detail Modal/Popup - TradingView Style -->
+        <div id="stockModal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="modal-header-left">
+                        <select id="modalStockSelect" onchange="loadModalStock()">
+                            <option value="">-- Select Stock --</option>
+                        </select>
+                        <div class="modal-title" id="modalTitle">Stock Details</div>
+                        <span style="font-size:12px;color:#666;margin-left:10px;">v2.1</span>
+                    </div>
+                    <button class="modal-close" onclick="closeModal()">✕ Close</button>
+                </div>
+                
+                <div class="modal-body">
+                    <!-- LEFT: Tools Panel (like TradingView) -->
+                    <div class="modal-tools-panel">
+                        <div style="background:#ff6b00;color:#000;padding:10px;text-align:center;font-weight:bold;border-radius:5px;margin-bottom:15px;">
+                            🛠️ TOOLS
+                        </div>
+                        <!-- Stock Selector -->
+                        <div class="tools-section">
+                            <div class="tools-section-title">📊 Stock</div>
+                            <select id="toolsPanelStockSelect" onchange="loadModalStockFromPanel()" style="width:100%;padding:10px;border-radius:6px;background:#1a1a2e;color:#fff;border:1px solid #333;font-size:14px;">
+                                <option value="">-- Select Stock --</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Quick Info -->
+                        <div class="tools-section">
+                            <div class="tools-section-title">💰 Price Info</div>
+                            <div id="toolsPriceInfo" style="font-size:13px;line-height:1.8;">
+                                <div style="display:flex;justify-content:space-between;"><span style="color:#888;">Price:</span><span id="toolsPrice" style="color:#00d4ff;font-weight:bold;">--</span></div>
+                                <div style="display:flex;justify-content:space-between;"><span style="color:#888;">Change:</span><span id="toolsChange">--</span></div>
+                                <div style="display:flex;justify-content:space-between;"><span style="color:#888;">Volume:</span><span id="toolsVolume">--</span></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Drawing Tools -->
+                        <div class="tools-section">
+                            <div class="tools-section-title">✏️ Drawing Tools</div>
+                            
+                            <div class="color-picker-row">
+                                <label>🎨 Color:</label>
+                                <input type="color" id="drawingColor" value="#00d4ff">
+                                <select id="lineWidth" style="flex:1;">
+                                    <option value="1">1px</option>
+                                    <option value="2" selected>2px</option>
+                                    <option value="3">3px</option>
+                                </select>
+                            </div>
+                            
+                            <div class="color-picker-row">
+                                <label>━ Style:</label>
+                                <select id="lineStyle" style="flex:1;">
+                                    <option value="solid">Solid</option>
+                                    <option value="dashed">Dashed</option>
+                                    <option value="dotted">Dotted</option>
+                                </select>
+                            </div>
+                            
+                            <button class="tool-btn" onclick="setDrawingMode('parallel')" id="tool-parallel">
+                                <span class="tool-btn-icon">⚡</span> Parallel Line
+                            </button>
+                            <button class="tool-btn" onclick="setDrawingMode('horizontal')" id="tool-horizontal">
+                                <span class="tool-btn-icon">━</span> Horizontal Line
+                            </button>
+                            <button class="tool-btn" onclick="setDrawingMode('trendline')" id="tool-trendline">
+                                <span class="tool-btn-icon">📈</span> Trend Line
+                            </button>
+                            <button class="tool-btn" onclick="setDrawingMode('ray')" id="tool-ray">
+                                <span class="tool-btn-icon">➡️</span> Ray Line
+                            </button>
+                            <button class="tool-btn" onclick="setDrawingMode('vertical')" id="tool-vertical">
+                                <span class="tool-btn-icon">⏱️</span> Vertical Line
+                            </button>
+                            
+                            <div style="display:flex;gap:5px;margin-top:10px;">
+                                <button class="tool-btn" onclick="undoLastDrawing()" style="flex:1;background:#333;">
+                                    <span class="tool-btn-icon">↩️</span> Undo
+                                </button>
+                                <button class="tool-btn" onclick="clearDrawings()" style="flex:1;background:#442222;">
+                                    <span class="tool-btn-icon">🗑️</span> Clear
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Indicators -->
+                        <div class="tools-section">
+                            <div class="tools-section-title">📈 Indicators</div>
+                            <div class="indicator-row">
+                                <input type="checkbox" id="showMA" onchange="loadModalChart()">
+                                <label for="showMA">MA (20, 50)</label>
+                            </div>
+                            <div class="indicator-row">
+                                <input type="checkbox" id="showEMA" onchange="loadModalChart()">
+                                <label for="showEMA">EMA (12, 26)</label>
+                            </div>
+                            <div class="indicator-row">
+                                <input type="checkbox" id="showBB" onchange="loadModalChart()">
+                                <label for="showBB">Bollinger Bands</label>
+                            </div>
+                            <div class="indicator-row">
+                                <input type="checkbox" id="showVolume" onchange="loadModalChart()" checked>
+                                <label for="showVolume">Volume</label>
+                            </div>
+                            <div class="indicator-row">
+                                <input type="checkbox" id="showMACD" onchange="loadModalChart()">
+                                <label for="showMACD">MACD</label>
+                            </div>
+                            <div class="indicator-row">
+                                <input type="checkbox" id="showRSI" onchange="loadModalChart()">
+                                <label for="showRSI">RSI</label>
+                            </div>
+                        </div>
+                        
+                        <!-- Alerts -->
+                        <div class="tools-section">
+                            <div class="tools-section-title">🔔 Set Alert</div>
+                            <select id="modalAlertType" style="width:100%;padding:8px;margin-bottom:8px;border-radius:5px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+                                <option value="price">💰 Price</option>
+                                <option value="rsi">📊 RSI</option>
+                                <option value="macd">📈 MACD</option>
+                            </select>
+                            <select id="modalAlertCondition" style="width:100%;padding:8px;margin-bottom:8px;border-radius:5px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+                                <option value="above">Above</option>
+                                <option value="below">Below</option>
+                                <option value="crossover">Crossover</option>
+                                <option value="crossunder">Crossunder</option>
+                            </select>
+                            <input type="number" id="modalAlertValue" placeholder="Target Value" step="0.01" style="width:100%;padding:8px;margin-bottom:8px;border-radius:5px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+                            <button onclick="addModalAlert()" style="width:100%;padding:10px;background:linear-gradient(135deg,#00d4ff,#0099cc);border:none;border-radius:6px;color:#000;font-weight:bold;cursor:pointer;">➕ Add Alert</button>
+                        </div>
+                        
+                        <!-- Technical Signals -->
+                        <div class="tools-section">
+                            <div class="tools-section-title">📊 Signals</div>
+                            <ul class="signal-list" id="modalSignals" style="font-size:12px;">
+                                <li class="neutral">Loading...</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- RIGHT: Chart Section -->
+                    <div class="modal-chart-section">
+                        <!-- Chart Toolbar -->
+                        <div class="chart-toolbar-top">
+                            <select id="modalTimeframe" onchange="loadModalChart()" style="padding:6px 12px;">
+                                <option value="1D">1D</option>
+                                <option value="1W">1W</option>
+                                <option value="1MO">1M</option>
+                                <option value="3MO" selected>3M</option>
+                                <option value="6MO">6M</option>
+                                <option value="1Y">1Y</option>
+                            </select>
+                            <span id="drawingInstructions" style="display:none;padding:5px 10px;background:rgba(0,212,255,0.2);border-radius:5px;font-size:12px;color:#00d4ff;">
+                                <span id="instructionText">Click to draw...</span>
+                            </span>
+                        </div>
+                        
+                        <!-- Chart Container -->
+                        <div class="chart-container" id="modalChartContainer"></div>
+                    </div>
+                            <button onclick="setDrawingMode('horizontal')" id="tool-horizontal" title="Draw horizontal support/resistance">➖ H-Line</button>
+                            <button onclick="setDrawingMode('trendline')" id="tool-trendline" title="Draw trend line">📈 Trend</button>
+                            <button onclick="setDrawingMode('ray')" id="tool-ray" title="Extended ray line">➡️ Ray</button>
+                            <button onclick="setDrawingMode('vertical')" id="tool-vertical" title="Vertical time line">⏱️ V-Line</button>
+                            
+                            <!-- Line Style -->
+                            <select id="lineStyle" style="padding:5px 8px;border-radius:5px;background:#222;color:#fff;border:1px solid #444;font-size:12px;">
+                                <option value="solid">━ Solid</option>
+                                <option value="dashed">-- Dashed</option>
+                                <option value="dotted">··· Dotted</option>
+                            </select>
+                            
+                            <!-- Line Width -->
+                            <select id="lineWidth" style="padding:5px 8px;border-radius:5px;background:#222;color:#fff;border:1px solid #444;font-size:12px;">
+                                <option value="1">1px</option>
+                                <option value="2" selected>2px</option>
+                                <option value="3">3px</option>
+                                <option value="4">4px</option>
+                            </select>
+                            
+                            <button onclick="undoLastDrawing()" id="tool-undo" title="Undo last drawing">↩️ Undo</button>
+                            <button onclick="clearDrawings()" id="tool-clear" title="Clear all drawings">🗑️ Clear</button>
+                            
+                            <span style="flex:1"></span>
+                            <select id="modalTimeframe" onchange="loadModalChart()" style="padding:5px 10px;border-radius:5px;background:#222;color:#fff;border:1px solid #444;">
+                                <option value="1D">1D</option>
+                                <option value="1W">1W</option>
+                                <option value="1MO">1M</option>
+                                <option value="3MO">3M</option>
+                                <option value="6MO">6M</option>
+                                <option value="1Y">1Y</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Drawing Instructions -->
+                        <div id="drawingInstructions" style="display:none; padding: 8px 15px; background: rgba(0,212,255,0.15); border-left: 3px solid #00d4ff; margin: 5px 10px; border-radius: 5px; font-size: 13px;">
+                            <span id="instructionText">Click on chart to start drawing...</span>
+                        </div>
+                        
+                        <!-- Indicator Toggles -->
+                        <div class="indicator-toggle" style="padding:10px;">
+                            <label><input type="checkbox" id="showMA" onchange="loadModalChart()"> MA</label>
+                            <label><input type="checkbox" id="showEMA" onchange="loadModalChart()"> EMA</label>
+                            <label><input type="checkbox" id="showBB" onchange="loadModalChart()"> Bollinger</label>
+                            <label><input type="checkbox" id="showVolume" onchange="loadModalChart()" checked> Volume</label>
+                            <label><input type="checkbox" id="showMACD" onchange="loadModalChart()"> MACD</label>
+                            <label><input type="checkbox" id="showRSI" onchange="loadModalChart()"> RSI</label>
+                        </div>
+                        
+                        <!-- Chart Container -->
+                        <div class="chart-container" id="modalChartContainer"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="error" id="error" style="display: none;"></div>
+    </div>
+    
+    <script>
+        // State
+        let chart = null;
+        let currentTicker = '';
+        let currentTimeframe = '1D';
+        let currentSector = 'all';
+        let refreshInterval = null;
+        let sectorData = [];
+        
+        // ALWAYS use the IP address - don't auto-detect (safer)
+        // Allow URL parameter override for testing: index.html?api=http://localhost:8888/api
+        const urlParams = new URLSearchParams(window.location.search);
+        // Use relative path - automatically uses the server that served this page
+        let API_BASE = urlParams.get('api') || '/api';
+        
+        console.log('Using API_BASE:', API_BASE);
+        setDebug('API: ' + API_BASE + ' | Testing connection...');
+        
+        // Test API immediately - with explicit fetch
+        setDebug('Testing API: ' + API_BASE + '/stocks...');
+        fetch('/api/stocks').then(r => {
+            setDebug('API responded! Status: ' + r.status);
+            return r.json();
+        }).then(d => {
+            setDebugDone('✅ API OK! ' + Object.keys(d).length + ' stocks');
+        }).catch(e => {
+            // More detailed error diagnostics
+            let errorMsg = e.message;
+            if (e.name === 'TypeError' && errorMsg.includes('fetch')) {
+                errorMsg = 'Network error - Cannot reach ' + API_BASE + '. Check if Flask server is running on 192.168.250.208:8888';
+            }
+            setDebugError('❌ API Failed: ' + errorMsg);
+            
+            // Show detailed error in the error div
+            const errorDiv = document.getElementById('error');
+            errorDiv.innerHTML = `
+                <div style="padding:15px;">
+                    <strong>⚠️ Cannot Connect to API Server</strong><br><br>
+                    <p><strong>Server URL:</strong> ${API_BASE}</p>
+                    <p><strong>Error:</strong> ${e.message}</p>
+                    <hr style="border-color:#444;margin:15px 0;">
+                    <p style="color:#ffaa00;"><strong>Troubleshooting:</strong></p>
+                    <ul style="margin-left:20px;color:#ccc;">
+                        <li>Is Flask server running? (python app.py)</li>
+                        <li>Can your PC ping 192.168.250.208?</li>
+                        <li>Is port 8888 open on the server?</li>
+                        <li>Try accessing <a href="http://192.168.250.208:8888/api/stocks" target="_blank" style="color:#00d4ff;">http://192.168.250.208:8888/api/stocks</a> directly in browser</li>
+                        <li>If server is on THIS PC, change API_BASE to 'http://localhost:8888/api'</li>
+                    </ul>
+                </div>
+            `;
+            errorDiv.style.display = 'block';
+        });
+        
+        // Tab Management
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tab + '-tab').classList.add('active');
+            
+            if (tab === 'klci') {
+                loadKLCIData();
+            } else if (tab === 'watchlist') {
+                loadWatchlist();
+            } else if (tab === 'alerts') {
+                loadAlerts();
+                loadMethodologyRules();
+            }
+        }
+        
+        // KLCI Functions
+        async function loadKLCIData() {
+            console.log('loadKLCIData: Starting...');
+            try {
+                await loadKLCIHeader();
+                console.log('loadKLCIData: Header loaded');
+            } catch(e) {
+                console.error('loadKLCIHeader failed:', e);
+            }
+            try {
+                await loadSectorTabs();
+                console.log('loadKLCIData: Tabs loaded');
+            } catch(e) {
+                console.error('loadSectorTabs failed:', e);
+            }
+            try {
+                await loadKLCIQuotes();
+                console.log('loadKLCIData: Quotes loaded');
+            } catch(e) {
+                console.error('loadKLCIQuotes failed:', e);
+            }
+        }
+        
+        async function loadKLCIHeader() {
+            try {
+                console.log('Loading KLCI from:', `${API_BASE}/klci/index`);
+                const response = await fetch(`${API_BASE}/klci/index`);
+                if (!response.ok) throw new Error('API error: ' + response.status);
+                const data = await response.json();
+                console.log('KLCI data:', data);
+                
+                const container = document.getElementById('klciHeader');
+                
+                if (data.klci) {
+                    const klci = data.klci;
+                    const changeClass = klci.change_pct >= 0 ? 'positive' : 'negative';
+                    const changeSymbol = klci.change_pct >= 0 ? '+' : '';
+                    
+                    container.innerHTML = `
+                        <div class="klci-card main">
+                            <div class="klci-label">🇲🇾 KLCI Index</div>
+                            <div class="klci-value">${klci.value ? klci.value.toFixed(2) : '--'}</div>
+                            <div class="klci-change ${changeClass}">
+                                ${changeSymbol}${klci.change ? klci.change.toFixed(2) : '--'} (${changeSymbol}${klci.change_pct ? klci.change_pct.toFixed(2) : '--'}%)
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Add other indices
+                    if (data.indices && data.indices.length > 1) {
+                        for (const idx of data.indices.slice(1)) {
+                            const idxClass = idx.change_pct >= 0 ? 'positive' : 'negative';
+                            const idxSymbol = idx.change_pct >= 0 ? '+' : '';
+                            container.innerHTML += `
+                                <div class="klci-card">
+                                    <div class="klci-label">${idx.name}</div>
+                                    <div class="klci-value">${idx.price ? idx.price.toFixed(0) : '--'}</div>
+                                    <div class="klci-change ${idxClass}">
+                                        ${idxSymbol}${idx.change ? idx.change.toFixed(0) : '--'} (${idxSymbol}${idx.change_pct ? idx.change_pct.toFixed(2) : '--'}%)
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Error loading KLCI header:', e);
+            }
+        }
+        
+        async function loadSectorTabs() {
+            try {
+                const response = await fetch(`${API_BASE}/klci/sectors`);
+                const sectors = await response.json();
+                
+                const container = document.getElementById('sectorTabs');
+                container.innerHTML = '';
+                
+                for (const sector of sectors) {
+                    const btn = document.createElement('button');
+                    btn.className = 'sector-btn' + (sector.id === currentSector ? ' active' : '');
+                    btn.onclick = () => selectSector(sector.id);
+                    btn.innerHTML = `${sector.icon} ${sector.name} <span class="count" id="count-${sector.id}">--</span>`;
+                    container.appendChild(btn);
+                }
+            } catch (e) {
+                console.error('Error loading sectors:', e);
+            }
+        }
+        
+        async function loadKLCIQuotes() {
+            try {
+                console.log('Loading KLCI quotes, sector:', currentSector);
+                const response = await fetch(`${API_BASE}/klci/quote?sector=${currentSector}`);
+                const data = await response.json();
+                console.log('KLCI quotes received:', data.quotes ? data.quotes.length : 0, 'stocks');
+                
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+                
+                sectorData = data.quotes || [];
+                const sectorSummary = data.sector_summary || {};
+                
+                // Update sector counts
+                document.querySelectorAll('.sector-btn').forEach(btn => {
+                    const sectorId = btn.onclick.toString().match(/selectSector\('([^']+)'\)/)?.[1];
+                    if (sectorId && sectorSummary[sectorId]) {
+                        const count = sectorSummary[sectorId].total;
+                        const countEl = document.getElementById(`count-${sectorId}`);
+                        if (countEl) countEl.textContent = count;
+                        
+                        // Update button color based on sector trend
+                        const avgChange = sectorSummary[sectorId].avg_change;
+                        btn.classList.toggle('up', avgChange > 0);
+                        btn.classList.toggle('down', avgChange < 0);
+                    }
+                });
+                
+                // Update all count
+                const totalCount = sectorData.length;
+                const allCountEl = document.getElementById('count-all');
+                if (allCountEl) allCountEl.textContent = totalCount;
+                
+                // Render sector summary pills
+                renderSectorSummary(sectorSummary);
+                
+                // Render table
+                renderStockTable();
+                
+            } catch (e) {
+                console.error('Error loading KLCI quotes:', e);
+                showError('Error loading stock data: ' + e.message);
+            }
+        }
+        
+        function renderSectorSummary(summary) {
+            const container = document.getElementById('sectorSummary');
+            container.innerHTML = '';
+            
+            const sectorIcons = {
+                'Financials': '🏦',
+                'Energy': '⚡',
+                'Utilities': '🔌',
+                'Telecommunications': '📱',
+                'Consumer': '🛒',
+                'Industrial': '🏭',
+                'Real Estate': '🏠',
+                'Plantation': '🌴',
+                'Technology': '💻',
+                'Healthcare': '🏥'
+            };
+            
+            for (const [sector, data] of Object.entries(summary)) {
+                const pill = document.createElement('div');
+                const changeClass = data.avg_change >= 0 ? 'up' : 'down';
+                const changeSymbol = data.avg_change >= 0 ? '+' : '';
+                pill.className = `sector-pill ${changeClass}`;
+                pill.innerHTML = `
+                    <span class="icon">${sectorIcons[sector] || '📊'}</span>
+                    <span class="name">${sector}</span>
+                    <span class="change">${changeSymbol}${data.avg_change.toFixed(2)}%</span>
+                    <span style="color: #666; font-size: 11px;">(${data.up}↑ ${data.down}↓)</span>
+                `;
+                pill.onclick = () => selectSector(sector);
+                pill.style.cursor = 'pointer';
+                container.appendChild(pill);
+            }
+        }
+        
+        function renderStockTable() {
+            const tbody = document.getElementById('klciTableBody');
+            tbody.innerHTML = '';
+            
+            if (sectorData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="loading">No data available</td></tr>';
+                return;
+            }
+            
+            let currentSectorName = '';
+            
+            for (const stock of sectorData) {
+                // Add sector header if sector changed
+                if (currentSector === 'all' && stock.sector !== currentSectorName) {
+                    currentSectorName = stock.sector;
+                    const headerRow = document.createElement('tr');
+                    headerRow.className = 'sector-header';
+                    headerRow.innerHTML = `<td colspan="5">${stock.sector}</td>`;
+                    tbody.appendChild(headerRow);
+                }
+                
+                const row = document.createElement('tr');
+                row.onclick = (e) => {
+                    // Single click - just highlight, don't switch tabs
+                    e.stopPropagation();
+                };
+                row.ondblclick = () => openModal(stock.ticker);
+                row.style.cursor = 'pointer';
+                row.title = 'Double-click to open detailed view with charts and tools';
+                
+                const changeClass = (stock.change_pct || 0) >= 0 ? 'positive' : 'negative';
+                const changeSymbol = (stock.change_pct || 0) >= 0 ? '+' : '';
+                
+                // Calculate bar width (capped at 5%)
+                const barWidth = Math.min(Math.abs(stock.change_pct || 0) * 10, 100);
+                
+                row.innerHTML = `
+                    <td>
+                        <div class="stock-name-cell">
+                            <span class="stock-name">${stock.name}</span>
+                            <span class="stock-ticker">${stock.ticker}</span>
+                        </div>
+                    </td>
+                    <td class="price-cell">${stock.price ? 'RM ' + stock.price.toFixed(2) : '--'}</td>
+                    <td class="change-cell ${changeClass}">
+                        ${stock.change ? changeSymbol + stock.change.toFixed(2) : '--'}
+                        <div class="change-bar">
+                            <div class="change-bar-fill ${changeClass}" style="width: ${barWidth}%"></div>
+                        </div>
+                    </td>
+                    <td class="change-cell ${changeClass}">${stock.change_pct ? changeSymbol + stock.change_pct.toFixed(2) + '%' : '--'}</td>
+                    <td>${stock.volume ? formatNumber(stock.volume) : '--'}</td>
+                `;
+                
+                tbody.appendChild(row);
+            }
+        }
+        
+        function selectSector(sector) {
+            currentSector = sector;
+            
+            // Update button states
+            document.querySelectorAll('.sector-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.onclick.toString().includes(`'${sector}'`)) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            loadKLCIQuotes();
+        }
+        
+        function viewStock(ticker) {
+            // Switch to stocks tab and load the stock
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            document.querySelectorAll('.tab-btn')[1].classList.add('active');
+            document.getElementById('stocks-tab').classList.add('active');
+            
+            document.getElementById('stockSelect').value = ticker;
+            loadStock();
+        }
+        
+        // Debug helper
+        function setDebug(msg) {
+            document.getElementById('debugStatus').textContent = '🔄 ' + msg;
+            console.log('DEBUG:', msg);
+        }
+        function setDebugDone(msg) {
+            document.getElementById('debugStatus').textContent = '✅ ' + msg;
+            document.getElementById('debugStatus').style.background = '#4caf50';
+            document.getElementById('debugStatus').style.color = '#fff';
+        }
+        function setDebugError(msg) {
+            document.getElementById('debugStatus').textContent = '❌ ' + msg;
+            document.getElementById('debugStatus').style.background = '#f44336';
+            document.getElementById('debugStatus').style.color = '#fff';
+        }
+        
+        // Stock Tab Functions
+        async function init() {
+            setDebug('Starting init...');
+            console.log('=== INIT STARTED ===');
+            try {
+                await loadStockList();
+                setDebug('Stock list loaded');
+            } catch(e) {
+                setDebugError('Stock list failed: ' + e.message);
+                console.error('loadStockList failed:', e);
+            }
+            
+            try {
+                await loadStockSelects();
+                setDebug('Stock selects loaded');
+            } catch(e) {
+                setDebugError('Stock selects failed: ' + e.message);
+                console.error('loadStockSelects failed:', e);
+            }
+            
+            try {
+                await loadKLCIData();
+                setDebugDone('KLCI data loaded - Ready!');
+            } catch(e) {
+                setDebugError('KLCI data failed: ' + e.message);
+                console.error('loadKLCIData failed:', e);
+            }
+            
+            try {
+                await loadWatchlist();
+            } catch(e) {
+                console.error('loadWatchlist failed:', e);
+            }
+            
+            try {
+                await loadAlerts();
+            } catch(e) {
+                console.error('loadAlerts failed:', e);
+            }
+            
+            try {
+                await loadMethodologyRules();
+            } catch(e) {
+                console.error('loadMethodologyRules failed:', e);
+            }
+            
+            // Check alerts every 60 seconds
+            setInterval(checkAlerts, 60000);
+            
+            if (document.getElementById('autoRefresh').checked) {
+                startAutoRefresh();
+            }
+            
+            document.getElementById('autoRefresh').addEventListener('change', function() {
+                if (this.checked) {
+                    startAutoRefresh();
+                } else {
+                    stopAutoRefresh();
+                }
+            });
+        }
+        
+        async function loadStockList() {
+            try {
+                console.log('Loading from:', API_BASE);
+                const response = await fetch(`${API_BASE}/stocks`);
+                if (!response.ok) throw new Error('API error: ' + response.status);
+                const stocks = await response.json();
+                console.log('Stocks loaded:', Object.keys(stocks).length);
+                
+                const select = document.getElementById('stockSelect');
+                for (const [name, ticker] of Object.entries(stocks)) {
+                    const option = document.createElement('option');
+                    option.value = ticker;
+                    option.textContent = name;
+                    select.appendChild(option);
+                }
+            } catch (e) {
+                console.error('Error loading stocks:', e);
+                showError('Cannot connect to API. Make sure app.py is running. Error: ' + e.message);
+            }
+        }
+        
+        function setTimeframe(tf) {
+            currentTimeframe = tf;
+            
+            document.querySelectorAll('.timeframe-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tf === tf);
+            });
+            
+            if (currentTicker) {
+                loadStockData(currentTicker, tf);
+            }
+        }
+        
+        async function loadStock() {
+            const ticker = document.getElementById('stockSelect').value;
+            if (!ticker) return;
+            
+            currentTicker = ticker;
+            await loadStockData(ticker, currentTimeframe);
+        }
+        
+        async function loadStockData(ticker, timeframe) {
+            try {
+                const quoteRes = await fetch(`${API_BASE}/quote/${ticker}`);
+                const quote = await quoteRes.json();
+                
+                if (quote.error) {
+                    showError(quote.error);
+                    return;
+                }
+                
+                document.getElementById('priceCard').style.display = 'block';
+                document.getElementById('chartContainer').style.display = 'block';
+                document.getElementById('indicatorsSection').style.display = 'grid';
+                hideError();
+                
+                document.getElementById('stockName').textContent = quote.name || ticker;
+                document.getElementById('currentPrice').textContent = 'RM ' + (quote.price ? quote.price.toFixed(2) : '--');
+                
+                const changeEl = document.getElementById('priceChange');
+                const change = quote.change_pct || 0;
+                changeEl.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`;
+                changeEl.className = `price-change ${change >= 0 ? 'positive' : 'negative'}`;
+                
+                document.getElementById('prevClose').textContent = quote.prev_close ? 'RM ' + quote.prev_close.toFixed(2) : '--';
+                document.getElementById('dayHigh').textContent = quote.day_high ? 'RM ' + quote.day_high.toFixed(2) : '--';
+                document.getElementById('dayLow').textContent = quote.day_low ? 'RM ' + quote.day_low.toFixed(2) : '--';
+                document.getElementById('week52High').textContent = quote.week52_high ? 'RM ' + quote.week52_high.toFixed(2) : '--';
+                document.getElementById('week52Low').textContent = quote.week52_low ? 'RM ' + quote.week52_low.toFixed(2) : '--';
+                document.getElementById('volume').textContent = quote.volume ? formatNumber(quote.volume) : '--';
+                
+                await loadChart(ticker, timeframe);
+                await loadTechnicals(ticker);
+                
+            } catch (e) {
+                showError('Error loading stock data: ' + e.message);
+            }
+        }
+        
+        async function loadChart(ticker, timeframe) {
+            const intervalMap = {
+                '1D': '5m',
+                '1W': '15m',
+                '1MO': '1d',
+                '3MO': '1d',
+                '6MO': '1d',
+                '1Y': '1wk',
+                '5Y': '1mo'
+            };
+            
+            const interval = intervalMap[timeframe] || '1d';
+            
+            try {
+                const response = await fetch(`${API_BASE}/history/${ticker}?period=${timeframe}&interval=${interval}`);
+                const data = await response.json();
+                
+                if (data.error || !data.data) {
+                    showError(data.error || 'No chart data available');
+                    return;
+                }
+                
+                const chartData = data.data.map(d => ({
+                    time: d.time,
+                    open: d.open,
+                    high: d.high,
+                    low: d.low,
+                    close: d.close
+                }));
+                
+                renderChart(chartData);
+                
+            } catch (e) {
+                showError('Error loading chart: ' + e.message);
+            }
+        }
+        
+        function renderChart(data) {
+            const container = document.getElementById('chart');
+            container.innerHTML = '';
+            
+            if (chart) {
+                chart.remove();
+            }
+            
+            chart = LightweightCharts.createChart(container, {
+                width: container.clientWidth,
+                height: 400,
+                layout: {
+                    background: { type: 'solid', color: '#1a1a2e' },
+                    textColor: '#d1d4dc'
+                },
+                grid: {
+                    vertLines: { color: 'rgba(255,255,255,0.1)' },
+                    horzLines: { color: 'rgba(255,255,255,0.1)' }
+                },
+                crosshair: {
+                    mode: LightweightCharts.CrosshairMode.Normal
+                },
+                timeScale: {
+                    borderColor: 'rgba(255,255,255,0.2)'
+                },
+                rightPriceScale: {
+                    borderColor: 'rgba(255,255,255,0.2)'
+                }
+            });
+            
+            const candlestickSeries = chart.addCandlestickSeries({
+                upColor: '#00ff88',
+                downColor: '#ff4444',
+                borderUpColor: '#00ff88',
+                borderDownColor: '#ff4444',
+                wickUpColor: '#00ff88',
+                wickDownColor: '#ff4444'
+            });
+            
+            candlestickSeries.setData(data);
+            
+            const volumeSeries = chart.addHistogramSeries({
+                color: '#26a69a',
+                priceFormat: { type: 'volume' },
+                priceScaleId: 'volume'
+            });
+            
+            chart.priceScale('volume').applyOptions({
+                scaleMargins: { top: 0.8, bottom: 0 }
+            });
+            
+            volumeSeries.setData(data.map(d => ({
+                time: d.time,
+                value: d.volume,
+                color: d.close >= d.open ? 'rgba(0,255,136,0.5)' : 'rgba(255,68,68,0.5)'
+            })));
+            
+            window.addEventListener('resize', () => {
+                chart.applyOptions({ width: container.clientWidth });
+            });
+        }
+        
+        async function loadTechnicals(ticker) {
+            try {
+                const response = await fetch(`${API_BASE}/technicals/${ticker}`);
+                const data = await response.json();
+                
+                if (data.error || !data.latest) return;
+                
+                const latest = data.latest;
+                
+                const rsiEl = document.getElementById('rsiValue');
+                rsiEl.textContent = latest.rsi ? latest.rsi.toFixed(2) : '--';
+                rsiEl.className = 'indicator-value ' + getRSIClass(latest.rsi);
+                document.getElementById('rsiSignal').textContent = getRSISignal(latest.rsi);
+                
+                const macdEl = document.getElementById('macdValue');
+                macdEl.textContent = latest.macd ? latest.macd.toFixed(4) : '--';
+                macdEl.className = 'indicator-value ' + (latest.macd > 0 ? 'positive' : 'negative');
+                document.getElementById('macdSignal').textContent = latest.macd > latest.macd_signal ? '🐂 Bullish' : '🐻 Bearish';
+                
+                document.getElementById('ma20Value').textContent = latest.ma20 ? 'RM ' + latest.ma20.toFixed(2) : '--';
+                document.getElementById('ma50Value').textContent = latest.ma50 ? 'RM ' + latest.ma50.toFixed(2) : '--';
+                document.getElementById('bbUpper').textContent = latest.bb_upper ? 'RM ' + latest.bb_upper.toFixed(2) : '--';
+                document.getElementById('bbLower').textContent = latest.bb_lower ? 'RM ' + latest.bb_lower.toFixed(2) : '--';
+                
+            } catch (e) {
+                console.error('Error loading technicals:', e);
+            }
+        }
+        
+        function getRSIClass(rsi) {
+            if (!rsi) return 'neutral';
+            if (rsi > 70) return 'negative';
+            if (rsi < 30) return 'positive';
+            return 'neutral';
+        }
+        
+        function getRSISignal(rsi) {
+            if (!rsi) return '--';
+            if (rsi > 70) return '⚠️ Overbought';
+            if (rsi < 30) return '🟢 Oversold';
+            return '📊 Neutral';
+        }
+        
+        function formatNumber(num) {
+            if (num >= 1e9) return (num / 1e9).toFixed(1) + 'B';
+            if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M';
+            if (num >= 1e3) return (num / 1e3).toFixed(1) + 'K';
+            return num.toString();
+        }
+        
+        function showError(msg) {
+            const el = document.getElementById('error');
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+        
+        function hideError() {
+            document.getElementById('error').style.display = 'none';
+        }
+        
+        function startAutoRefresh() {
+            stopAutoRefresh();
+            refreshInterval = setInterval(async () => {
+                await loadKLCIData();
+                if (currentTicker) {
+                    await loadStockData(currentTicker, currentTimeframe);
+                }
+            }, 30000);
+        }
+        
+        function stopAutoRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+                refreshInterval = null;
+            }
+        }
+        
+        async function refreshAll() {
+            await loadKLCIData();
+            if (currentTicker) {
+                await loadStockData(currentTicker, currentTimeframe);
+            }
+        }
+        
+        // ========== WATCHLIST FUNCTIONS ==========
+        async function loadWatchlist() {
+            try {
+                const response = await fetch(`${API_BASE}/watchlist`);
+                const data = await response.json();
+                const watchlist = data.watchlist || [];
+                
+                const tbody = document.getElementById('watchlistTableBody');
+                const emptyMsg = document.getElementById('watchlistEmpty');
+                
+                if (watchlist.length === 0) {
+                    tbody.innerHTML = '';
+                    emptyMsg.style.display = 'block';
+                    return;
+                }
+                
+                emptyMsg.style.display = 'none';
+                tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading prices...</td></tr>';
+                
+                // Load quotes for each stock
+                let html = '';
+                for (const item of watchlist) {
+                    try {
+                        const quoteRes = await fetch(`${API_BASE}/quote/${item.ticker}`);
+                        const quote = await quoteRes.json();
+                        
+                        if (quote.error) continue;
+                        
+                        const changeClass = quote.change >= 0 ? 'positive' : 'negative';
+                        const changeSymbol = quote.change >= 0 ? '+' : '';
+                        
+                        html += `
+                            <tr onclick="viewStockFromWatchlist('${item.ticker}')" style="cursor: pointer;">
+                                <td><strong>${item.name || item.ticker}</strong><br><small style="color:#888">${item.ticker}</small></td>
+                                <td>${quote.price ? quote.price.toFixed(2) : '--'}</td>
+                                <td class="${changeClass}">${changeSymbol}${quote.change ? quote.change.toFixed(2) : '--'}</td>
+                                <td class="${changeClass}">${changeSymbol}${quote.change_pct ? quote.change_pct.toFixed(2) : '--'}%</td>
+                                <td>${quote.volume ? formatNumber(quote.volume) : '--'}</td>
+                                <td><button onclick="event.stopPropagation(); removeFromWatchlist('${item.ticker}')" style="background:#ff4444;color:#fff;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;">✕</button></td>
+                            </tr>
+                        `;
+                    } catch (e) {
+                        console.error(`Error loading ${item.ticker}:`, e);
+                    }
+                }
+                
+                tbody.innerHTML = html || '<tr><td colspan="6" class="loading">No data available</td></tr>';
+                
+            } catch (e) {
+                console.error('Error loading watchlist:', e);
+                document.getElementById('watchlistTableBody').innerHTML = '<tr><td colspan="6" class="error">Error loading watchlist</td></tr>';
+            }
+        }
+        
+        async function addToWatchlistFromSelect() {
+            const select = document.getElementById('watchlistStockSelect');
+            const ticker = select.value;
+            if (!ticker) return;
+            
+            const name = select.options[select.selectedIndex].text;
+            
+            try {
+                await fetch(`${API_BASE}/watchlist/add`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ticker: ticker, name: name})
+                });
+                
+                select.value = '';
+                loadWatchlist();
+                loadStockSelects(); // Refresh selects
+            } catch (e) {
+                console.error('Error adding to watchlist:', e);
+            }
+        }
+        
+        async function removeFromWatchlist(ticker) {
+            if (!confirm(`Remove ${ticker} from watchlist?`)) return;
+            
+            try {
+                await fetch(`${API_BASE}/watchlist/remove`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ticker: ticker})
+                });
+                loadWatchlist();
+            } catch (e) {
+                console.error('Error removing from watchlist:', e);
+            }
+        }
+        
+        function viewStockFromWatchlist(ticker) {
+            // Switch to stocks tab and load the stock
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.querySelectorAll('.tab-btn')[1].classList.add('active');
+            document.getElementById('stocks-tab').classList.add('active');
+            
+            document.getElementById('stockSelect').value = ticker;
+            loadStock();
+        }
+        
+        // ========== ALERTS FUNCTIONS ==========
+        async function loadAlerts() {
+            try {
+                const response = await fetch(`${API_BASE}/alerts`);
+                const data = await response.json();
+                const alerts = data.alerts || [];
+                
+                const tbody = document.getElementById('alertsTableBody');
+                
+                if (alerts.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#888;">No alerts set. Create one below!</td></tr>';
+                    return;
+                }
+                
+                let html = '';
+                for (const alert of alerts) {
+                    let currentValue = '--';
+                    let statusClass = '';
+                    let statusText = '✅ Active';
+                    
+                    if (alert.triggered) {
+                        statusClass = 'positive';
+                        statusText = '🔔 TRIGGERED';
+                        currentValue = alert.current_value ? parseFloat(alert.current_value).toFixed(2) : '--';
+                    }
+                    
+                    const typeIcons = {price: '💰', rsi: '📊', macd: '📈'};
+                    const typeIcon = typeIcons[alert.type] || '📌';
+                    
+                    html += `
+                        <tr>
+                            <td><strong>${alert.name || alert.ticker}</strong><br><small style="color:#888">${alert.ticker}</small></td>
+                            <td>${typeIcon} ${alert.type.toUpperCase()}</td>
+                            <td>${alert.condition}</td>
+                            <td>${alert.value}</td>
+                            <td>${currentValue}</td>
+                            <td class="${statusClass}">${statusText}</td>
+                            <td>
+                                ${alert.triggered ? `<button onclick="resetAlert('${alert.id}')" style="background:#00d4ff;color:#000;padding:5px 8px;border:none;border-radius:5px;cursor:pointer;margin-right:5px;">↺</button>` : ''}
+                                <button onclick="removeAlert('${alert.id}')" style="background:#ff4444;color:#fff;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;">✕</button>
+                            </td>
+                        </tr>
+                    `;
+                }
+                
+                tbody.innerHTML = html;
+                
+            } catch (e) {
+                console.error('Error loading alerts:', e);
+                document.getElementById('alertsTableBody').innerHTML = '<tr><td colspan="7" class="error">Error loading alerts</td></tr>';
+            }
+        }
+        
+        async function addAlert() {
+            const ticker = document.getElementById('alertStockSelect').value;
+            const type = document.getElementById('alertType').value;
+            const condition = document.getElementById('alertCondition').value;
+            const value = parseFloat(document.getElementById('alertValue').value);
+            
+            if (!ticker || isNaN(value)) {
+                alert('Please select a stock and enter a value');
+                return;
+            }
+            
+            const name = document.getElementById('alertStockSelect').options[document.getElementById('alertStockSelect').selectedIndex].text;
+            
+            try {
+                await fetch(`${API_BASE}/alerts/add`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ticker, type, condition, value, name})
+                });
+                
+                document.getElementById('alertValue').value = '';
+                loadAlerts();
+            } catch (e) {
+                console.error('Error adding alert:', e);
+            }
+        }
+        
+        async function removeAlert(id) {
+            if (!confirm('Delete this alert?')) return;
+            
+            try {
+                await fetch(`${API_BASE}/alerts/remove`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({id})
+                });
+                loadAlerts();
+            } catch (e) {
+                console.error('Error removing alert:', e);
+            }
+        }
+        
+        async function resetAlert(id) {
+            try {
+                await fetch(`${API_BASE}/alerts/reset`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({id})
+                });
+                loadAlerts();
+            } catch (e) {
+                console.error('Error resetting alert:', e);
+            }
+        }
+        
+        async function checkAlerts() {
+            try {
+                const response = await fetch(`${API_BASE}/alerts/check`);
+                const data = await response.json();
+                
+                if (data.triggered && data.triggered.length > 0) {
+                    // Show notification for triggered alerts
+                    for (const alert of data.triggered) {
+                        alert(`${alert.name || alert.ticker}: ${alert.type.toUpperCase()} alert triggered! Current: ${alert.current_value}`);
+                    }
+                    loadAlerts();
+                }
+            } catch (e) {
+                console.error('Error checking alerts:', e);
+            }
+        }
+        
+        async function loadMethodologyRules() {
+            try {
+                const response = await fetch(`${API_BASE}/methodology`);
+                const data = await response.json();
+                const rules = data.rules || {};
+                
+                const container = document.getElementById('methodologyRules');
+                let html = '';
+                
+                for (const [key, rule] of Object.entries(rules)) {
+                    html += `
+                        <div style="background: linear-gradient(145deg, #1a1a2e, #16213e); border-radius: 10px; padding: 15px; border: 1px solid #333;">
+                            <div style="font-weight: bold; color: #00d4ff; margin-bottom: 5px;">${rule.name}</div>
+                            <div style="font-size: 13px; color: #aaa;">${rule.description}</div>
+                            <div style="font-size: 12px; color: #666; margin-top: 8px;">Indicator: ${rule.indicator || rule.type}</div>
+                        </div>
+                    `;
+                }
+                
+                container.innerHTML = html;
+            } catch (e) {
+                console.error('Error loading methodology rules:', e);
+            }
+        }
+        
+        // Update stock selects for watchlist and alerts
+        async function loadStockSelects() {
+            try {
+                const response = await fetch(`${API_BASE}/stocks`);
+                const stocks = await response.json();
+                
+                const selects = ['watchlistStockSelect', 'alertStockSelect', 'stockSelect', 'modalStockSelect', 'toolsPanelStockSelect'];
+                
+                for (const selectId of selects) {
+                    const select = document.getElementById(selectId);
+                    if (!select) continue;
+                    
+                    // Keep first option for most selects
+                    const firstOption = selectId === 'stockSelect' || selectId === 'modalStockSelect' || selectId === 'toolsPanelStockSelect' ? '<option value="">-- Select Stock --</option>' : '<option value="">-- Add Stock --</option>';
+                    
+                    let options = firstOption;
+                    for (const [name, ticker] of Object.entries(stocks)) {
+                        options += `<option value="${ticker}">${name}</option>`;
+                    }
+                    select.innerHTML = options;
+                }
+            } catch (e) {
+                console.error('Error loading stock selects:', e);
+            }
+        }
+        
+        // ========== MODAL FUNCTIONS ==========
+        let modalChart = null;
+        let modalTicker = '';
+        let drawingMode = null;
+        let drawnLines = [];
+        
+        function openModal(ticker) {
+            const modal = document.getElementById('stockModal');
+            modal.classList.add('active');
+            
+            // Reset drawing state
+            drawingMode = null;
+            drawingState = 0;
+            firstPoint = null;
+            secondPoint = null;
+            lineSeriesMap = {};
+            
+            // Set the ticker
+            document.getElementById('modalStockSelect').value = ticker;
+            loadModalStock();
+        }
+        
+        function closeModal() {
+            const modal = document.getElementById('stockModal');
+            modal.classList.remove('active');
+            
+            // Reset drawing state
+            drawingMode = null;
+            drawingState = 0;
+            firstPoint = null;
+            secondPoint = null;
+            document.getElementById('drawingInstructions').style.display = 'none';
+            document.querySelectorAll('.drawing-toolbar button').forEach(b => b.classList.remove('active'));
+        }
+        
+        async function loadModalStock() {
+            const ticker = document.getElementById('modalStockSelect').value;
+            if (!ticker) return;
+            
+            modalTicker = ticker;
+            
+            // Also update tools panel selector
+            document.getElementById('toolsPanelStockSelect').value = ticker;
+            
+            // Load all data in parallel
+            await Promise.all([
+                loadModalStockInfo(ticker),
+                loadModalChart(),
+                loadModalSignals(ticker)
+            ]);
+        }
+        
+        async function loadModalStockFromPanel() {
+            const ticker = document.getElementById('toolsPanelStockSelect').value;
+            if (!ticker) return;
+            
+            // Also update header selector
+            document.getElementById('modalStockSelect').value = ticker;
+            
+            modalTicker = ticker;
+            
+            // Load all data
+            await Promise.all([
+                loadModalStockInfo(ticker),
+                loadModalChart(),
+                loadModalSignals(ticker)
+            ]);
+        }
+        
+        async function loadModalStockInfo(ticker) {
+            try {
+                const response = await fetch(`${API_BASE}/quote/${ticker}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error(data.error);
+                    return;
+                }
+                
+                document.getElementById('modalTitle').textContent = `${data.name || ticker} (${ticker})`;
+                document.getElementById('modalPrice').textContent = data.price ? data.price.toFixed(2) : '--';
+                
+                const changeEl = document.getElementById('modalChange');
+                const changeSymbol = data.change >= 0 ? '+' : '';
+                changeEl.textContent = `${changeSymbol}${data.change ? data.change.toFixed(2) : '--'} (${changeSymbol}${data.change_pct ? data.change_pct.toFixed(2) : '--'}%)`;
+                changeEl.className = 'stock-info-value ' + (data.change >= 0 ? 'positive' : 'negative');
+                
+                document.getElementById('modalVolume').textContent = data.volume ? formatNumber(data.volume) : '--';
+                document.getElementById('modalDayRange').textContent = data.day_low && data.day_high ? `${data.day_low.toFixed(2)} - ${data.day_high.toFixed(2)}` : '--';
+                
+                // Update tools panel price info
+                document.getElementById('toolsPrice').textContent = data.price ? 'RM ' + data.price.toFixed(2) : '--';
+                const toolsChangeEl = document.getElementById('toolsChange');
+                toolsChangeEl.textContent = data.change ? `${changeSymbol}${data.change.toFixed(2)} (${changeSymbol}${data.change_pct ? data.change_pct.toFixed(2) : '--'}%)` : '--';
+                toolsChangeEl.style.color = data.change >= 0 ? '#00ff88' : '#ff4444';
+                document.getElementById('toolsVolume').textContent = data.volume ? formatNumber(data.volume) : '--';
+                
+            } catch (e) {
+                console.error('Error loading modal stock info:', e);
+            }
+        }
+        
+        async function loadModalChart() {
+            const ticker = modalTicker;
+            if (!ticker) return;
+            
+            const period = document.getElementById('modalTimeframe').value;
+            const showMA = document.getElementById('showMA').checked;
+            const showEMA = document.getElementById('showEMA').checked;
+            const showBB = document.getElementById('showBB').checked;
+            const showVolume = document.getElementById('showVolume').checked;
+            
+            try {
+                const response = await fetch(`${API_BASE}/history/${ticker}?period=${period}`);
+                const data = await response.json();
+                
+                if (data.error || !data.data) {
+                    console.error(data.error || 'No data');
+                    return;
+                }
+                
+                // Create chart
+                const container = document.getElementById('modalChartContainer');
+                container.innerHTML = '';
+                
+                if (modalChart) {
+                    modalChart.remove();
+                }
+                
+                modalChart = LightweightCharts.createChart(container, {
+                    width: container.clientWidth,
+                    height: container.clientHeight,
+                    layout: {
+                        background: { type: 'solid', color: '#0a0a15' },
+                        textColor: '#d1d4dc',
+                    },
+                    grid: {
+                        vertLines: { color: '#2a2a3a' },
+                        horzLines: { color: '#2a2a3a' },
+                    },
+                    crosshair: {
+                        mode: LightweightCharts.CrosshairMode.Normal,
+                    },
+                    timeScale: {
+                        borderColor: '#485c7b',
+                    },
+                });
+                
+                // Candlestick series
+                const candleSeries = modalChart.addCandlestickSeries({
+                    upColor: '#00ff88',
+                    downColor: '#ff4444',
+                    borderDownColor: '#ff4444',
+                    borderUpColor: '#00ff88',
+                    wickDownColor: '#ff4444',
+                    wickUpColor: '#00ff88',
+                });
+                
+                // Format data
+                const chartData = data.data.map(d => ({
+                    time: d.time.split('T')[0],
+                    open: d.open,
+                    high: d.high,
+                    low: d.low,
+                    close: d.close,
+                }));
+                
+                candleSeries.setData(chartData);
+                
+                // MA Line
+                if (showMA) {
+                    const ma20 = calculateMA(chartData, 20);
+                    const ma50 = calculateMA(chartData, 50);
+                    
+                    const ma20Series = modalChart.addLineSeries({
+                        color: '#2962FF',
+                        lineWidth: 2,
+                        title: 'MA20',
+                    });
+                    ma20Series.setData(ma20);
+                    
+                    const ma50Series = modalChart.addLineSeries({
+                        color: '#FF6D00',
+                        lineWidth: 2,
+                        title: 'MA50',
+                    });
+                    ma50Series.setData(ma50);
+                }
+                
+                // EMA Line
+                if (showEMA) {
+                    const ema20 = calculateEMA(chartData, 20);
+                    const emaSeries = modalChart.addLineSeries({
+                        color: '#AA00FF',
+                        lineWidth: 2,
+                        title: 'EMA20',
+                    });
+                    emaSeries.setData(ema20);
+                }
+                
+                // Bollinger Bands
+                if (showBB) {
+                    const bb = calculateBollingerBands(chartData, 20, 2);
+                    
+                    const bbUpper = modalChart.addLineSeries({ color: 'rgba(255, 215, 0, 0.3)', lineWidth: 1, title: 'BB Upper' });
+                    bbUpper.setData(bb.upper);
+                    
+                    const bbLower = modalChart.addLineSeries({ color: 'rgba(255, 215, 0, 0.3)', lineWidth: 1, title: 'BB Lower' });
+                    bbLower.setData(bb.lower);
+                }
+                
+                // Volume
+                if (showVolume) {
+                    const volumeSeries = modalChart.addHistogramSeries({
+                        color: '#26a69a',
+                        priceFormat: { type: 'volume' },
+                        priceScaleId: '',
+                    });
+                    
+                    volumeSeries.priceScale().applyOptions({
+                        scaleMargins: { top: 0.8, bottom: 0 },
+                    });
+                    
+                    const volumeData = data.data.map(d => ({
+                        time: d.time.split('T')[0],
+                        value: d.volume,
+                        color: d.close >= d.open ? 'rgba(0, 255, 136, 0.5)' : 'rgba(255, 68, 68, 0.5)',
+                    }));
+                    
+                    volumeSeries.setData(volumeData);
+                }
+                
+                // Handle resize
+                const handleResize = () => {
+                    modalChart.applyOptions({
+                        width: container.clientWidth,
+                        height: container.clientHeight,
+                    });
+                };
+                
+                window.addEventListener('resize', handleResize);
+                
+                // Subscribe to click events for drawing
+                modalChart.subscribeClickPoint(handleChartClick);
+                
+                // Load saved drawings
+                loadDrawings();
+                
+            } catch (e) {
+                console.error('Error loading modal chart:', e);
+            }
+        }
+        
+        function calculateMA(data, period) {
+            const result = [];
+            for (let i = 0; i < data.length; i++) {
+                if (i < period - 1) {
+                    result.push({ time: data[i].time, value: null });
+                    continue;
+                }
+                
+                let sum = 0;
+                for (let j = 0; j < period; j++) {
+                    sum += data[i - j].close;
+                }
+                result.push({ time: data[i].time, value: sum / period });
+            }
+            return result;
+        }
+        
+        function calculateEMA(data, period) {
+            const result = [];
+            const k = 2 / (period + 1);
+            let ema = null;
+            
+            for (const d of data) {
+                if (ema === null) {
+                    ema = d.close;
+                } else {
+                    ema = d.close * k + ema * (1 - k);
+                }
+                result.push({ time: d.time, value: ema });
+            }
+            return result;
+        }
+        
+        function calculateBollingerBands(data, period, stdDev) {
+            const upper = [];
+            const lower = [];
+            const middle = calculateMA(data, period);
+            
+            for (let i = 0; i < data.length; i++) {
+                if (i < period - 1 || !middle[i].value) {
+                    upper.push({ time: data[i].time, value: null });
+                    lower.push({ time: data[i].time, value: null });
+                    continue;
+                }
+                
+                let sumSq = 0;
+                for (let j = 0; j < period; j++) {
+                    const diff = data[i - j].close - middle[i].value;
+                    sumSq += diff * diff;
+                }
+                const std = Math.sqrt(sumSq / period);
+                
+                upper.push({ time: data[i].time, value: middle[i].value + stdDev * std });
+                lower.push({ time: data[i].time, value: middle[i].value - stdDev * std });
+            }
+            
+            return { upper, lower, middle };
+        }
+        
+        async function loadModalSignals(ticker) {
+            try {
+                const response = await fetch(`${API_BASE}/methodology/analyze/${ticker}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error(data.error);
+                    return;
+                }
+                
+                const signals = data.analysis || {};
+                const list = document.getElementById('modalSignals');
+                
+                let html = '';
+                
+                // RSI
+                const rsi = signals.rsi_value;
+                if (rsi !== undefined && rsi !== null) {
+                    let rsiClass = 'neutral';
+                    let rsiText = `RSI: ${rsi.toFixed(1)}`;
+                    if (rsi > 70) { rsiClass = 'bearish'; rsiText += ' (Overbought)'; }
+                    else if (rsi < 30) { rsiClass = 'bullish'; rsiText += ' (Oversold)'; }
+                    html += `<li class="${rsiClass}"><span>${rsiText}</span><span>${rsiClass === 'bullish' ? '🟢' : rsiClass === 'bearish' ? '⚠️' : '➖'}</span></li>`;
+                }
+                
+                // MACD
+                const macd = signals.macd_value;
+                const macdSig = signals.macd_signal_value;
+                if (macd !== undefined && macd !== null) {
+                    let macdClass = 'neutral';
+                    let macdText = `MACD: ${macd.toFixed(4)}`;
+                    if (macd > macdSig) macdClass = 'bullish';
+                    else if (macd < macdSig) macdClass = 'bearish';
+                    html += `<li class="${macdClass}"><span>${macdText}</span><span>${macdClass === 'bullish' ? '📈' : macdClass === 'bearish' ? '📉' : '➖'}</span></li>`;
+                }
+                
+                // Golden/Death Cross
+                if (signals.golden_cross) html += `<li class="bullish"><span>Golden Cross (MA50>MA200)</span><span>🟢</span></li>`;
+                if (signals.death_cross) html += `<li class="bearish"><span>Death Cross (MA50<MA200)</span><span>⚠️</span></li>`;
+                
+                // Price vs MA50
+                if (signals.price_above_ma50) html += `<li class="bullish"><span>Price > MA50</span><span>🟢</span></li>`;
+                if (signals.price_below_ma50) html += `<li class="bearish"><span>Price < MA50</span><span>⚠️</span></li>`;
+                
+                // Bollinger
+                if (signals.bb_support) html += `<li class="bullish"><span>BB Support Touch</span><span>🟢</span></li>`;
+                if (signals.bb_resistance) html += `<li class="bearish"><span>BB Resistance Touch</span><span>⚠️</span></li>`;
+                
+                // Summary
+                const summary = data.summary || 'NEUTRAL';
+                html += `<li style="background: linear-gradient(135deg, #00d4ff, #0099cc); color: #000; font-weight: bold; justify-content: center;">
+                    <span>${summary === 'BULLISH' ? '🟢 BULLISH' : summary === 'BEARISH' ? '⚠️ BEARISH' : '➖ NEUTRAL'}</span>
+                    <span>${data.bullish_signals || 0} vs ${data.bearish_signals || 0}</span>
+                </li>`;
+                
+                list.innerHTML = html || '<li class="neutral">No signals available</li>';
+                
+            } catch (e) {
+                console.error('Error loading modal signals:', e);
+            }
+        }
+        
+        async function addModalAlert() {
+            const ticker = modalTicker;
+            const type = document.getElementById('modalAlertType').value;
+            const condition = document.getElementById('modalAlertCondition').value;
+            const value = parseFloat(document.getElementById('modalAlertValue').value);
+            
+            if (!ticker || isNaN(value)) {
+                alert('Please select a stock and enter a value');
+                return;
+            }
+            
+            try {
+                await fetch(`${API_BASE}/alerts/add`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ticker, type, condition, value, name: document.getElementById('modalTitle').textContent})
+                });
+                
+                document.getElementById('modalAlertValue').value = '';
+                alert('Alert added successfully!');
+            } catch (e) {
+                console.error('Error adding modal alert:', e);
+            }
+        }
+        
+        // ========== PARALLEL LINE DRAWING SYSTEM ==========
+        // Variables already declared above (line ~2335) - just reset them here
+        drawingMode = null;
+        drawnLines = [];  // Array of line objects
+        drawingState = 0;  // 0: idle, 1: first point clicked, 2: second point clicked
+        firstPoint = null;
+        secondPoint = null;
+        tempLineSeries = null;
+        
+        // Drawing series storage - already declared above
+        lineSeriesMap = {};  // Store line series by ID
+        
+        function setDrawingMode(mode) {
+            // Toggle mode
+            if (drawingMode === mode) {
+                drawingMode = null;
+                drawingState = 0;
+                firstPoint = null;
+                secondPoint = null;
+                document.querySelectorAll('.drawing-toolbar button').forEach(b => b.classList.remove('active'));
+                document.getElementById('drawingInstructions').style.display = 'none';
+                return;
+            }
+            
+            drawingMode = mode;
+            drawingState = 0;
+            firstPoint = null;
+            secondPoint = null;
+            
+            document.querySelectorAll('.drawing-toolbar button').forEach(b => b.classList.remove('active'));
+            document.getElementById(`tool-${mode}`).classList.add('active');
+            
+            // Show instructions
+            const instructions = document.getElementById('drawingInstructions');
+            instructions.style.display = 'block';
+            
+            if (mode === 'parallel') {
+                document.getElementById('instructionText').textContent = '⚡ PARALLEL LINE: Click 2 points to define the first line, then click a 3rd point to create parallel line(s)';
+            } else if (mode === 'horizontal') {
+                document.getElementById('instructionText').textContent = '➖ H-LINE: Click at price level to draw horizontal support/resistance';
+            } else if (mode === 'trendline') {
+                document.getElementById('instructionText').textContent = '📈 TREND LINE: Click start point, then end point';
+            } else if (mode === 'ray') {
+                document.getElementById('instructionText').textContent = '➡️ RAY: Click start point, then direction point (extends forever)';
+            } else if (mode === 'vertical') {
+                document.getElementById('instructionText').textContent = '⏱️ V-LINE: Click at time position to draw vertical line';
+            }
+        }
+        
+        // Get line style from select
+        function getLineStyle() {
+            const style = document.getElementById('lineStyle').value;
+            return {
+                lineStyle: style === 'dashed' ? 2 : style === 'dotted' ? 3 : 0,
+                lineWidth: parseInt(document.getElementById('lineWidth').value) || 2
+            };
+        }
+        
+        // Get current color
+        function getDrawingColor() {
+            return document.getElementById('drawingColor').value || '#00d4ff';
+        }
+        
+        // Handle chart click for drawing
+        function handleChartClick(param) {
+            if (!drawingMode || !param.point || !param.time) return;
+            
+            const price = modalChart.timeScale().coordinateToPrice(param.point.y);
+            const time = param.time;
+            const color = getDrawingColor();
+            const lineStyle = getLineStyle();
+            
+            if (drawingMode === 'horizontal') {
+                // Single click - draw horizontal line at that price
+                const lineId = 'h_' + Date.now();
+                const series = modalChart.addLineSeries({
+                    color: color,
+                    lineWidth: lineStyle.lineWidth,
+                    lineStyle: lineStyle.lineStyle,
+                    lastValueVisible: false,
+                    priceLineVisible: false,
+                });
+                
+                // Create horizontal line data (extend to full timeframe)
+                const data = [
+                    { time: time, value: price },
+                    { time: time, value: price }
+                ];
+                
+                // Get chart time range
+                const timeScale = modalChart.timeScale();
+                const visibleRange = timeScale.getVisibleRange();
+                if (visibleRange) {
+                    data[0].time = visibleRange.from;
+                    data[1].time = visibleRange.to;
+                }
+                
+                series.setData(data);
+                
+                // Save the line
+                drawnLines.push({
+                    id: lineId,
+                    type: 'horizontal',
+                    price: price,
+                    color: color,
+                    lineStyle: lineStyle.lineStyle,
+                    lineWidth: lineStyle.lineWidth,
+                    timeFrom: data[0].time,
+                    timeTo: data[1].time
+                });
+                
+                lineSeriesMap[lineId] = series;
+                saveDrawings();
+                
+                // Reset
+                drawingMode = null;
+                document.querySelectorAll('.drawing-toolbar button').forEach(b => b.classList.remove('active'));
+                document.getElementById('drawingInstructions').style.display = 'none';
+                
+            } else if (drawingMode === 'vertical') {
+                // Single click - draw vertical line
+                const lineId = 'v_' + Date.now();
+                const series = modalChart.addLineSeries({
+                    color: color,
+                    lineWidth: lineStyle.lineWidth,
+                    lineStyle: lineStyle.lineStyle,
+                    lastValueVisible: false,
+                    priceLineVisible: false,
+                });
+                
+                // Get price range
+                const priceScale = modalChart.priceScale();
+                const priceRange = priceScale.getVisibleRange();
+                
+                const data = [
+                    { time: time, value: priceRange ? priceRange.from : price },
+                    { time: time, value: priceRange ? priceRange.to : price + 1 }
+                ];
+                
+                series.setData(data);
+                
+                drawnLines.push({
+                    id: lineId,
+                    type: 'vertical',
+                    time: time,
+                    color: color,
+                    lineStyle: lineStyle.lineStyle,
+                    lineWidth: lineStyle.lineWidth,
+                    priceFrom: data[0].value,
+                    priceTo: data[1].value
+                });
+                
+                lineSeriesMap[lineId] = series;
+                saveDrawings();
+                
+                drawingMode = null;
+                document.querySelectorAll('.drawing-toolbar button').forEach(b => b.classList.remove('active'));
+                document.getElementById('drawingInstructions').style.display = 'none';
+                
+            } else if (drawingMode === 'parallel' || drawingMode === 'trendline' || drawingMode === 'ray') {
+                // Multi-click for parallel/trend/ray lines
+                if (drawingState === 0) {
+                    // First click
+                    firstPoint = { time: time, price: price };
+                    drawingState = 1;
+                    document.getElementById('instructionText').textContent = 'Now click the second point...';
+                    
+                } else if (drawingState === 1) {
+                    // Second click
+                    secondPoint = { time: time, price: price };
+                    drawingState = 2;
+                    
+                    if (drawingMode === 'parallel') {
+                        document.getElementById('instructionText').textContent = 'Click a 3rd point to create parallel lines! (or click elsewhere for single line)';
+                    } else {
+                        // Draw the line now for non-parallel modes
+                        drawTrendOrRay(firstPoint, secondPoint, drawingMode, color, lineStyle);
+                        
+                        // Reset
+                        drawingMode = null;
+                        drawingState = 0;
+                        firstPoint = null;
+                        secondPoint = null;
+                        document.querySelectorAll('.drawing-toolbar button').forEach(b => b.classList.remove('active'));
+                        document.getElementById('drawingInstructions').style.display = 'none';
+                    }
+                    
+                } else if (drawingState === 2 && drawingMode === 'parallel') {
+                    // Third click for parallel line
+                    const thirdPoint = { time: time, price: price };
+                    
+                    // Calculate slope from first two points
+                    const slope = (secondPoint.price - firstPoint.price) / (new Date(secondPoint.time) - new Date(firstPoint.time));
+                    
+                    // Calculate offset (intercept)
+                    const intercept = firstPoint.price - slope * new Date(firstPoint.time).getTime();
+                    
+                    // Calculate price at third point's time
+                    const thirdTimeMs = new Date(thirdPoint.time).getTime();
+                    const priceAtThird = slope * thirdTimeMs + intercept;
+                    
+                    // Calculate the parallel offset (distance from third point to new parallel line)
+                    const parallelOffset = thirdPoint.price - priceAtThird;
+                    
+                    // Draw original line
+                    drawTrendOrRay(firstPoint, secondPoint, 'trendline', color, lineStyle);
+                    
+                    // Draw parallel line
+                    const parallelPrice1 = firstPoint.price + parallelOffset;
+                    const parallelPrice2 = secondPoint.price + parallelOffset;
+                    
+                    const paraFirst = { time: firstPoint.time, price: parallelPrice1 };
+                    const paraSecond = { time: secondPoint.time, price: parallelPrice2 };
+                    
+                    // Use different shade of same color for parallel line
+                    drawTrendOrRay(paraFirst, paraSecond, 'trendline', color, lineStyle);
+                    
+                    // Reset
+                    drawingMode = null;
+                    drawingState = 0;
+                    firstPoint = null;
+                    secondPoint = null;
+                    document.querySelectorAll('.drawing-toolbar button').forEach(b => b.classList.remove('active'));
+                    document.getElementById('drawingInstructions').style.display = 'none';
+                }
+            }
+        }
+        
+        function drawTrendOrRay(p1, p2, type, color, lineStyle) {
+            const lineId = type + '_' + Date.now();
+            
+            // Get time range from chart
+            const timeScale = modalChart.timeScale();
+            const visibleRange = timeScale.getVisibleRange();
+            
+            if (!visibleRange) return;
+            
+            // For ray, extend to end of visible range
+            let endTime = p2.time;
+            if (type === 'ray') {
+                endTime = visibleRange.to;
+            }
+            
+            const series = modalChart.addLineSeries({
+                color: color,
+                lineWidth: lineStyle.lineWidth,
+                lineStyle: lineStyle.lineStyle,
+                lastValueVisible: false,
+                priceLineVisible: false,
+            });
+            
+            series.setData([
+                { time: p1.time, value: p1.price },
+                { time: endTime, value: p2.price }
+            ]);
+            
+            drawnLines.push({
+                id: lineId,
+                type: type,
+                time1: p1.time,
+                time2: endTime,
+                price1: p1.price,
+                price2: p2.price,
+                color: color,
+                lineStyle: lineStyle.lineStyle,
+                lineWidth: lineStyle.lineWidth
+            });
+            
+            lineSeriesMap[lineId] = series;
+            saveDrawings();
+        }
+        
+        function undoLastDrawing() {
+            if (drawnLines.length === 0) {
+                alert('No drawings to undo!');
+                return;
+            }
+            
+            const lastLine = drawnLines.pop();
+            if (lineSeriesMap[lastLine.id]) {
+                modalChart.removeSeries(lineSeriesMap[lastLine.id]);
+                delete lineSeriesMap[lastLine.id];
+            }
+            
+            saveDrawings();
+        }
+        
+        function clearDrawings() {
+            if (!confirm('🗑️ Clear ALL drawings for this stock?')) return;
+            
+            // Remove all line series
+            for (const id in lineSeriesMap) {
+                modalChart.removeSeries(lineSeriesMap[id]);
+            }
+            lineSeriesMap = {};
+            drawnLines = [];
+            
+            // Clear from localStorage
+            const storageKey = `drawings_${modalTicker}`;
+            localStorage.removeItem(storageKey);
+        }
+        
+        // Save drawings to localStorage
+        function saveDrawings() {
+            if (!modalTicker) return;
+            
+            const storageKey = `drawings_${modalTicker}`;
+            localStorage.setItem(storageKey, JSON.stringify(drawnLines));
+        }
+        
+        // Load drawings from localStorage
+        function loadDrawings() {
+            if (!modalTicker) return;
+            
+            const storageKey = `drawings_${modalTicker}`;
+            const saved = localStorage.getItem(storageKey);
+            
+            if (!saved) return;
+            
+            try {
+                drawnLines = JSON.parse(saved);
+                
+                // Re-draw all saved lines
+                for (const line of drawnLines) {
+                    if (line.type === 'horizontal') {
+                        const series = modalChart.addLineSeries({
+                            color: line.color,
+                            lineWidth: line.lineWidth,
+                            lineStyle: line.lineStyle,
+                            lastValueVisible: false,
+                            priceLineVisible: false,
+                        });
+                        
+                        series.setData([
+                            { time: line.timeFrom, value: line.price },
+                            { time: line.timeTo, value: line.price }
+                        ]);
+                        
+                        lineSeriesMap[line.id] = series;
+                        
+                    } else if (line.type === 'vertical') {
+                        const series = modalChart.addLineSeries({
+                            color: line.color,
+                            lineWidth: line.lineWidth,
+                            lineStyle: line.lineStyle,
+                            lastValueVisible: false,
+                            priceLineVisible: false,
+                        });
+                        
+                        series.setData([
+                            { time: line.time, value: line.priceFrom },
+                            { time: line.time, value: line.priceTo }
+                        ]);
+                        
+                        lineSeriesMap[line.id] = series;
+                        
+                    } else if (line.type === 'trendline' || line.type === 'ray') {
+                        const series = modalChart.addLineSeries({
+                            color: line.color,
+                            lineWidth: line.lineWidth,
+                            lineStyle: line.lineStyle,
+                            lastValueVisible: false,
+                            priceLineVisible: false,
+                        });
+                        
+                        series.setData([
+                            { time: line.time1, value: line.price1 },
+                            { time: line.time2, value: line.price2 }
+                        ]);
+                        
+                        lineSeriesMap[line.id] = series;
+                    }
+                }
+            } catch (e) {
+                console.error('Error loading drawings:', e);
+            }
+        }
+        
+        // Double-click handler for stock table
+        function setupDoubleClickHandlers() {
+            // This will be called after table is loaded
+        }
+        
+        // Override the table row click to add double-click
+        const originalBuildKLCITableRow = function(data) {
+            // This is a placeholder - the actual implementation is in the existing code
+        };
+        
+        // Start - wait for DOM then call init
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM ready - calling init()');
+            document.getElementById('debugStatus').textContent = '⚡ DOM ready, starting init()...';
+            init().then(() => {
+                document.getElementById('debugStatus').textContent = '✅ All loaded successfully!';
+                document.getElementById('debugStatus').style.background = '#4caf50';
+            }).catch(e => {
+                document.getElementById('debugStatus').textContent = '❌ init() failed: ' + e.message;
+                document.getElementById('debugStatus').style.background = '#f44336';
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modal Test - v2.14</title>
+    <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.0.0/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--accent:#58a6ff;--green:#3fb950;--red:#f85149;--text:#f0f6fc;--text2:#8b949e;--border:#30363d}
+        body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);padding:20px}
+        h2{color:var(--accent);margin-bottom:20px}
+        
+        /* Modal */
+        .modal-overlay{display:flex;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.9);z-index:2000;padding:20px;align-items:center;justify-content:center}
+        .modal-container{width:100%;max-width:1600px;height:calc(100vh - 40px);background:var(--bg);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 25px 80px rgba(0,0,0,.6)}
+        .modal-header{display:flex;justify-content:space-between;align-items:center;padding:16px 24px;background:var(--bg2);border-bottom:1px solid var(--border)}
+        .modal-stock-info{display:flex;align-items:center;gap:20px}
+        .modal-stock-name{font-size:22px;font-weight:700}
+        .modal-ticker{background:var(--bg3);color:var(--accent);padding:6px 14px;border-radius:8px;font-size:14px;font-weight:600}
+        .modal-price-display{display:flex;align-items:baseline;gap:16px}
+        .modal-price{font-size:28px;font-weight:700}
+        .modal-change{font-size:16px;font-weight:600;padding:6px 12px;border-radius:6px}
+        .modal-change.green{background:rgba(63,185,80,.15);color:var(--green)}
+        .modal-close-btn{background:var(--bg3);border:none;color:var(--text);width:40px;height:40px;border-radius:10px;cursor:pointer;font-size:18px}
+        .modal-close-btn:hover{background:var(--red)}
+        .modal-body{display:grid;grid-template-columns:320px 1fr;flex:1;overflow:hidden}
+        .modal-left{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:20px}
+        .tool-section{background:var(--bg3);border-radius:12px;padding:16px}
+        .tool-section-title{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px}
+        .tool-select{width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:14px;margin-bottom:12px}
+        .price-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+        .price-info-item{background:var(--bg2);padding:10px;border-radius:8px}
+        .price-info-label{font-size:11px;color:var(--text2);margin-bottom:4px}
+        .price-info-value{font-size:14px;font-weight:600}
+        .drawing-tools-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+        .draw-btn{padding:10px 12px;border:1px solid var(--border);background:var(--bg2);color:var(--text2);border-radius:8px;font-size:12px;cursor:pointer;transition:.2s;display:flex;flex-direction:column;align-items:center;gap:6px}
+        .draw-btn:hover{border-color:var(--accent);color:var(--accent)}
+        .draw-btn.active{border-color:var(--accent);background:var(--accent);color:var(--bg)}
+        .draw-btn-icon{font-size:18px}
+        .style-row{display:flex;gap:10px;margin-bottom:12px;align-items:center}
+        .style-row label{font-size:12px;color:var(--text2);width:50px}
+        .style-row input[type=color]{width:40px;height:32px;border:none;border-radius:6px;cursor:pointer}
+        .style-row select{flex:1;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:12px}
+        .line-actions{display:flex;gap:8px;margin-top:12px}
+        .line-action-btn{flex:1;padding:10px;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer}
+        .undo-btn{background:var(--bg2);color:var(--text);border:1px solid var(--border)}
+        .clear-btn{background:rgba(248,81,73,.15);color:var(--red);border:1px solid var(--red)}
+        .indicator-check{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+        .indicator-check:last-child{border-bottom:none}
+        .indicator-check input{width:18px;height:18px;accent-color:var(--accent)}
+        .indicator-check label{font-size:13px;cursor:pointer}
+        .modal-right{display:flex;flex-direction:column;background:var(--bg);overflow:hidden}
+        .modal-chart-toolbar{display:flex;gap:8px;padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--border)}
+        .modal-tf-btn{padding:6px 14px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);border-radius:6px;font-size:12px;cursor:pointer}
+        .modal-tf-btn:hover{border-color:var(--accent)}
+        .modal-tf-btn.active{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+        .modal-chart-container{flex:1;min-height:400px;position:relative}
+        #modal_chart{width:100%;height:100%}
+        #drawing-canvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:auto;cursor:crosshair}
+        .modal-stats-panel{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;padding:16px;background:var(--bg2);border-top:1px solid var(--border)}
+        .modal-stat-item{text-align:center}
+        .modal-stat-label{font-size:11px;color:var(--text2);margin-bottom:4px}
+        .modal-stat-value{font-size:14px;font-weight:600}
+    </style>
+</head>
+<body>
+    <h2>Modal Design Preview (v2.14)</h2>
+    <p style="color:var(--text2);margin-bottom:20px">This is the new modern modal design. Features:</p>
+    <ul style="color:var(--text2);margin-bottom:30px;line-height:2">
+        <li>✅ Modern dark UI with proper alignment</li>
+        <li>✅ Left panel: Stock selector, Price info, Drawing tools, Indicators, Alerts</li>
+        <li>✅ Right panel: Chart with timeframe buttons + Stats below</li>
+        <li>✅ Drawing tools: Horizontal, Trend, Vertical, Ray, Fib, Parallel</li>
+        <li>✅ Indicators: MA, EMA, Bollinger Bands, Volume</li>
+    </ul>
+    <button onclick="document.getElementById('stockModal').classList.add('active')" style="padding:12px 24px;background:var(--accent);color:var(--bg);border:none;border-radius:8px;font-size:16px;cursor:pointer">👁️ Preview Modal</button>
+    
+    <!-- MODAL -->
+    <div class="modal-overlay" id="stockModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <div class="modal-stock-info">
+                    <span class="modal-stock-name">Maybank</span>
+                    <span class="modal-ticker">1155.KL</span>
+                </div>
+                <div class="modal-price-display">
+                    <span class="modal-price">RM 10.50</span>
+                    <span class="modal-change green">+2.5%</span>
+                </div>
+                <button class="modal-close-btn" onclick="document.getElementById('stockModal').classList.remove('active')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-left">
+                    <div class="tool-section">
+                        <div class="tool-section-title">📊 Stock</div>
+                        <select class="tool-select"><option>Maybank (1155.KL)</option></select>
+                    </div>
+                    <div class="tool-section">
+                        <div class="tool-section-title">💰 Price Info</div>
+                        <div class="price-info-grid">
+                            <div class="price-info-item"><div class="price-info-label">Prev Close</div><div class="price-info-value">RM 10.24</div></div>
+                            <div class="price-info-item"><div class="price-info-label">Day High</div><div class="price-info-value">RM 10.60</div></div>
+                            <div class="price-info-item"><div class="price-info-label">Day Low</div><div class="price-info-value">RM 10.20</div></div>
+                            <div class="price-info-item"><div class="price-info-label">Volume</div><div class="price-info-value">2.5M</div></div>
+                        </div>
+                    </div>
+                    <div class="tool-section">
+                        <div class="tool-section-title">✏️ Drawing Tools</div>
+                        <div class="style-row"><label>🎨</label><input type="color" value="#58a6ff"><select><option>2px</option></select></div>
+                        <div class="style-row"><label>📏</label><select><option>Solid</option></select></div>
+                        <div class="drawing-tools-grid">
+                            <button class="draw-btn"><span class="draw-btn-icon">━</span>Horizontal</button>
+                            <button class="draw-btn"><span class="draw-btn-icon">📈</span>Trend</button>
+                            <button class="draw-btn"><span class="draw-btn-icon">│</span>Vertical</button>
+                            <button class="draw-btn"><span class="draw-btn-icon">➡️</span>Ray</button>
+                            <button class="draw-btn"><span class="draw-btn-icon">📊</span>Fib</button>
+                            <button class="draw-btn active"><span class="draw-btn-icon">⚡</span>Parallel</button>
+                        </div>
+                        <div class="line-actions">
+                            <button class="line-action-btn undo-btn">↩️ Undo</button>
+                            <button class="line-action-btn clear-btn">🗑️ Clear</button>
+                        </div>
+                    </div>
+                    <div class="tool-section">
+                        <div class="tool-section-title">📈 Indicators</div>
+                        <div class="indicator-check"><input type="checkbox" checked><label>Moving Average</label></div>
+                        <div class="indicator-check"><input type="checkbox"><label>EMA (12, 26)</label></div>
+                        <div class="indicator-check"><input type="checkbox"><label>Bollinger Bands</label></div>
+                        <div class="indicator-check"><input type="checkbox" checked><label>Volume</label></div>
+                    </div>
+                    <div class="tool-section">
+                        <div class="tool-section-title">🔔 Alerts</div>
+                        <select class="tool-select"><option>Price Above</option></select>
+                        <input type="number" class="tool-select" placeholder="Target Price (RM)">
+                        <button style="width:100%;padding:12px;background:var(--accent);color:var(--bg);border:none;border-radius:8px;font-weight:600;cursor:pointer">➕ Create Alert</button>
+                    </div>
+                </div>
+                <div class="modal-right">
+                    <div class="modal-chart-toolbar">
+                        <button class="modal-tf-btn">1D</button>
+                        <button class="modal-tf-btn">1W</button>
+                        <button class="modal-tf-btn">1M</button>
+                        <button class="modal-tf-btn active">3M</button>
+                        <button class="modal-tf-btn">6M</button>
+                        <button class="modal-tf-btn">1Y</button>
+                    </div>
+                    <div class="modal-chart-container">
+                        <div id="modal_chart"></div>
+                        <canvas id="drawing-canvas"></canvas>
+                    </div>
+                    <div class="modal-stats-panel">
+                        <div class="modal-stat-item"><div class="modal-stat-label">RSI</div><div class="modal-stat-value">65.4</div></div>
+                        <div class="modal-stat-item"><div class="modal-stat-label">MACD</div><div class="modal-stat-value">0.12</div></div>
+                        <div class="modal-stat-item"><div class="modal-stat-label">MA20</div><div class="modal-stat-value">10.30</div></div>
+                        <div class="modal-stat-item"><div class="modal-stat-label">MA50</div><div class="modal-stat-value">10.15</div></div>
+                        <div class="modal-stat-item"><div class="modal-stat-label">BB Upper</div><div class="modal-stat-value">10.80</div></div>
+                        <div class="modal-stat-item"><div class="modal-stat-label">BB Lower</div><div class="modal-stat-value">9.90</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

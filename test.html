@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Connectivity Test</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #1a1a2e; color: #fff; }
+        .result { padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .success { background: rgba(0,255,136,0.2); border: 2px solid #00ff88; }
+        .error { background: rgba(255,0,0,0.2); border: 2px solid #ff4444; }
+        button { padding: 10px 20px; background: #00d4ff; border: none; border-radius: 5px; cursor: pointer; }
+        input { padding: 10px; border-radius: 5px; border: 1px solid #333; background: #16213e; color: #fff; width: 300px; }
+        h1 { color: #00d4ff; }
+    </style>
+</head>
+<body>
+    <h1>🔌 API Connectivity Test</h1>
+    <p>Enter the API server URL to test:</p>
+    <input type="text" id="apiUrl" value="http://192.168.250.208:8888/api/stocks">
+    <button onclick="testApi()">Test Connection</button>
+    
+    <div id="results"></div>
+    
+    <hr style="margin:30px 0;border-color:#333;">
+    <h3>Quick Links</h3>
+    <p><a href="index.html" style="color:#00d4ff;">← Back to Dashboard</a></p>
+    <p><a href="index.html?api=http://localhost:8888/api" style="color:#00d4ff;">→ Open Dashboard with localhost</a></p>
+    <p><a href="index.html?api=http://127.0.0.1:8888/api" style="color:#00d4ff;">→ Open Dashboard with 127.0.0.1</a></p>
+    
+    <script>
+        function testApi() {
+            const url = document.getElementById('apiUrl').value;
+            const results = document.getElementById('results');
+            
+            results.innerHTML = '<div class="result">Testing ' + url + '...</div>';
+            
+            const startTime = Date.now();
+            
+            fetch(url)
+                .then(r => {
+                    const time = Date.now() - startTime;
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                })
+                .then(d => {
+                    const time = Date.now() - startTime;
+                    const count = Object.keys(d).length;
+                    results.innerHTML = `
+                        <div class="result success">
+                            <h3>✅ Success!</h3>
+                            <p>Response time: ${time}ms</p>
+                            <p>Data received: ${count} stocks</p>
+                        </div>
+                    `;
+                })
+                .catch(e => {
+                    results.innerHTML = `
+                        <div class="result error">
+                            <h3>❌ Failed</h3>
+                            <p>Error: ${e.message}</p>
+                            <p><strong>Possible causes:</strong></p>
+                            <ul>
+                                <li>Server not running</li>
+                                <li>Wrong IP address or port</li>
+                                <li>Firewall blocking the connection</li>
+                                <li>CORS issue</li>
+                            </ul>
+                        </div>
+                    `;
+                });
+        }
+    </script>
+</body>
+</html>
