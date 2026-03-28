@@ -2456,10 +2456,17 @@
             
             try {
                 const response = await fetch(`${API_BASE}/history/${ticker}?period=${period}`);
+                console.log('API response status:', response.status);
                 const data = await response.json();
+                console.log('API data received:', data);
                 
                 if (data.error || !data.data) {
-                    console.error(data.error || 'No data');
+                    console.error('Error:', data.error || 'No data');
+                    // Show error in chart container
+                    container.innerHTML = `<div style="padding:20px;color:#ff6666;text-align:center;">
+                        <p>⚠️ Chart data not available</p>
+                        <p style="font-size:12px;color:#888;">${data.error || 'No data returned from API'}</p>
+                    </div>`;
                     return;
                 }
                 
